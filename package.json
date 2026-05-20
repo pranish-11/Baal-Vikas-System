@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "axion",
   "private": true,
   "scripts": {
@@ -8,5 +9,9 @@
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
+=======
+  "dependencies": {
+    "mongodb": "^7.2.0"
+>>>>>>> 7b4ec5512fd206345bc1b3a7de072a7ed14a9eaf
   }
 }
