@@ -33,14 +33,43 @@ const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 initSocket(server);
 
-mongoose
-  .connect(process.env.MONGO_URI)
+import { MongoMemoryServer } from 'mongodb-memory-server';
+
+async function connectDB() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Connected to Primary MongoDB');
+  } catch (err) {
+    console.log('Primary MongoDB failed. Falling back to In-Memory DB...');
+    const mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    await mongoose.connect(uri);
+    console.log('Connected to In-Memory MongoDB');
+    
+    // Automatically seed the in-memory database
+    const { exec } = await import('child_process');
+    console.log('Seeding In-Memory DB...');
+    
+    // Need to temporarily set MONGO_URI so seed.js uses it
+    process.env.MONGO_URI = uri;
+    
+    return new Promise((resolve) => {
+      exec('node seed.js', (error, stdout, stderr) => {
+        if (error) console.error('Seed error:', error);
+        console.log('Seed completed automatically for memory DB.');
+        resolve();
+      });
+    });
+  }
+}
+
+connectDB()
   .then(() => {
     server.listen(PORT, () => {
       console.log(`Server on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('MongoDB connection error:', err);
+    console.error('Fatal Database connection error:', err);
     process.exit(1);
   });
