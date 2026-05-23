@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          String // "ADMIN" | "TEACHER" | "PARENT"
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  teacherClass  Classroom?     @relation("TeacherClass")
+  children      Student[]      @relation("ParentChildren")
+  sentMessages  Message[]      @relation("MessageSender")
+  notifications Notification[]
+  feeRecords    Fee[]          @relation("ParentFees")
+}
+
+model School {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  location      String
+  principalName String
+  contactEmail  String
+  phone         String?
+  address       String?
+  notes         String?
+  classrooms    Classroom[]
+  createdAt     DateTime    @default(now())
+}
+
+model Classroom {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  schoolId  String    @db.ObjectId
+  school    School    @relation(fields: [schoolId], references: [id])
+  teacherId String?   @unique @db.ObjectId
+  teacher   User?     @relation("TeacherClass", fields: [teacherId], references: [id])
+  students  Student[]
+  cameraUrl String?
+}
+
+model Student {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  firstName      String
+  lastName       String
+  age            Int
+  classroomId    String        @db.ObjectId
+  classroom      Classroom     @relation(fields: [classroomId], references: [id])
+  parentId       String        @db.ObjectId
+  parent         User          @relation("ParentChildren", fields: [parentId], references: [id])
+  enrollmentDate DateTime
+  medicalNotes   String?
+  profilePhoto   String?
+  behaviorPoints Int           @default(0)
+  attendance     Attendance[]
+  observations   Observation[]
+  fees           Fee[]
+  createdAt      DateTime      @default(now())
+}
+
+model Attendance {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId String   @db.ObjectId
+  student   Student  @relation(fields: [studentId], references: [id])
+  date      DateTime
+  status    String // "PRESENT" | "ABSENT" | "LATE" | "LEAVE"
+  note      String?
+  markedBy  String   @db.ObjectId
+  createdAt DateTime @default(now())
+}
+
+model Observation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  studentId String   @db.ObjectId
+  student   Student  @relation(fields: [studentId], references: [id])
+  teacherId String   @db.ObjectId
+  tags      String[]
+  note      String?
+  date      DateTime @default(now())
+  aiSummary String?
+}
+
+model Message {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  senderId       String    @db.ObjectId
+  sender         User      @relation("MessageSender", fields: [senderId], references: [id])
+  recipientId    String?   @db.ObjectId
+  threadId       String?   @db.ObjectId
+  content        String
+  iv             String
+  attachmentUrl  String?
+  attachmentType String?
+  isDeleted      Boolean   @default(false)
+  editedAt       DateTime?
+  createdAt      DateTime  @default(now())
+  readBy         String[]  @db.ObjectId
+}
+
+model Fee {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  studentId  String    @db.ObjectId
+  student    Student   @relation(fields: [studentId], references: [id])
+  parentId   String    @db.ObjectId
+  parent     User      @relation("ParentFees", fields: [parentId], references: [id])
+  title      String
+  amount     Float
+  amountPaid Float     @default(0)
+  dueDate    DateTime
+  status     String    @default("OUTSTANDING")
+  paidAt     DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+}
+
+model Complaint {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  filedById   String    @db.ObjectId
+  filedByRole String
+  subject     String
+  details     String
+  priority    String
+  status      String    @default("OPEN")
+  studentId   String?   @db.ObjectId
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model Notice {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  senderId    String   @db.ObjectId
+  title       String
+  body        String
+  targetRoles String[]
+  classroomId String?  @db.ObjectId
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  payload   String?
+  createdAt DateTime @default(now())
+}

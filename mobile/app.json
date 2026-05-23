@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Axion Montessori",
+    "slug": "axion-montessori",
+    "updates": {
+       "enabled": false
+    },
+  "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "axion",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E8F5F1"
+      }
+    },
+    "plugins": ["expo-router"],
+    "sdkVersion": "54.0.0"
+  }
+}
