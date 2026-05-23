@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import mongoose from 'mongoose';
 import Complaint from '../models/Complaint.js';
+import { getIO } from '../socket.js';
 
 const router = Router();
 
@@ -21,6 +22,14 @@ router.get('/', async (req, res) => {
   }
 });
 
+function analyzeUrgency(desc) {
+  if (!desc) return 'medium';
+  const text = desc.toLowerCase();
+  if (text.includes('urgent') || text.includes('emergency') || text.includes('hurt') || text.includes('blood') || text.includes('safety') || text.includes('bull')) return 'high';
+  if (text.includes('concern') || text.includes('worry') || text.includes('issue')) return 'medium';
+  return 'low';
+}
+
 router.post('/', async (req, res) => {
   try {
     const {
@@ -30,12 +39,16 @@ router.post('/', async (req, res) => {
       priority,
       studentId,
     } = req.body;
+    
+    // AI Urgency Sorting
+    const computedPriority = priority || analyzeUrgency(description);
+    
     const complaint = await Complaint.create({
       filedBy: req.user.id,
       filedByType: filedByType || (req.user.role === 'teacher' ? 'teacher' : 'parent'),
       subject,
       description,
-      priority: priority || 'medium',
+      priority: computedPriority,
       status: 'open',
       studentId: studentId || undefined,
       schoolId: req.user.schoolId || undefined,
@@ -44,6 +57,9 @@ router.post('/', async (req, res) => {
       .populate('filedBy', 'name avatarInitials role')
       .populate('studentId', 'firstName lastName')
       .populate('schoolId', 'name');
+      
+    getIO().emit('new_complaint', populated);
+      
     res.status(201).json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -68,6 +84,9 @@ router.put('/:id/resolve', async (req, res) => {
       .populate('filedBy', 'name avatarInitials role')
       .populate('studentId', 'firstName lastName')
       .populate('schoolId', 'name');
+      
+    getIO().emit('complaint_updated', populated);
+      
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -96,6 +115,9 @@ router.put('/:id/status', async (req, res) => {
       .populate('filedBy', 'name avatarInitials role')
       .populate('studentId', 'firstName lastName')
       .populate('schoolId', 'name');
+      
+    getIO().emit('complaint_updated', populated);
+      
     res.json(populated);
   } catch (err) {
     res.status(500).json({ message: err.message });

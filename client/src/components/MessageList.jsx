@@ -12,12 +12,17 @@ export default function MessageList({
   });
   return (
     <div className="conv-list">
-      <input
-        className="conv-search"
-        placeholder="Search conversations..."
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
+      <div className="search-group">
+        <span className="search-icon" aria-hidden="true">
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </span>
+        <input
+          className="conv-search search-input"
+          placeholder="Search conversations..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+      </div>
       {filtered.map((c, idx) => {
         const id = c.partner?._id;
         const active = id && selectedId === id;

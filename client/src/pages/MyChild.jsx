@@ -3,14 +3,12 @@ import { useOutletContext } from 'react-router-dom';
 import axios from '../api/axios.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const WEEK_SCORES = [85, 90, 78, 94, 88];
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-
 export default function MyChild() {
   const { user } = useAuth();
   const [child, setChild] = useState(null);
   const [events, setEvents] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [history, setHistory] = useState([]);
   const { leaderboardRefreshKey } = useOutletContext() || {};
 
   useEffect(() => {
@@ -19,10 +17,12 @@ export default function MyChild() {
       axios.get(`/api/students/${user.childId}`),
       axios.get(`/api/detection/events?studentId=${user.childId}`),
       axios.get('/api/leaderboard?period=today'),
-    ]).then(([childRes, eventsRes, lbRes]) => {
+      axios.get(`/api/leaderboard/history/${user.childId}`)
+    ]).then(([childRes, eventsRes, lbRes, histRes]) => {
       setChild(childRes.data);
       setEvents(eventsRes.data.slice(0, 4));
       setLeaderboard(lbRes.data);
+      setHistory(histRes.data);
     });
   }, [user?.childId, leaderboardRefreshKey]);
 
@@ -41,8 +41,6 @@ export default function MyChild() {
     );
     return idx >= 0 ? idx + 1 : null;
   }, [child, leaderboard]);
-
-  const avg = WEEK_SCORES.reduce((a, b) => a + b, 0) / WEEK_SCORES.length;
 
   if (!child) {
     return (
@@ -98,22 +96,24 @@ export default function MyChild() {
       </div>
 
       <div className="card card-pad dashboard-stack-margin">
-        <h2 className="title-font section-title">Weekly Behavior</h2>
-        <div className="weekly-bars">
-          {WEEK_SCORES.map((score, i) => (
-            <div key={i} className="wb-day">
-              <div
-                className="wb-bar"
-                style={{ height: `${score}px` }}
-              />
-              <div className="school-mini-loc">{DAYS[i]}</div>
-              <div className="title-font">{score}</div>
-            </div>
-          ))}
-        </div>
-        <div className="weekly-avg-line">
-          Weekly average: <span className="title-font">{avg.toFixed(1)}</span>
-        </div>
+        <h2 className="title-font section-title">Recent Points History</h2>
+        {history.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {history.map((h, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem', background: 'var(--surface2)', borderRadius: 'var(--radius)' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{h.points > 0 ? '+' : ''}{h.points} pts</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text2)' }}>{h.source} - {h.reason}</div>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text3)' }}>
+                  {new Date(h.timestamp).toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-hint">No points history available.</div>
+        )}
       </div>
     </div>
   );

@@ -11,7 +11,7 @@ export default function Topbar({
   notifItems,
 }) {
   let ctaLabel = 'Action';
-  if (role === 'admin') ctaLabel = 'Register Student';
+  if (['head_admin', 'school_admin', 'admin'].includes(role)) ctaLabel = 'Register Student';
   if (role === 'teacher') ctaLabel = 'Award Points';
   if (role === 'parent') ctaLabel = 'File Complaint';
 

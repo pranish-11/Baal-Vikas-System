@@ -43,7 +43,19 @@ export default function StudentCard({ student, onClick }) {
           style={{ width: `${Math.min(100, bp)}%` }}
         />
       </div>
-      <span className="points-chip">{student.points ?? 0} pts</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+        <span className="points-chip">{student.points ?? 0} pts</span>
+        <button
+          type="button"
+          className="btn-ghost btn-sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.(student, 'manage');
+          }}
+        >
+          Manage
+        </button>
+      </div>
     </button>
   );
 }

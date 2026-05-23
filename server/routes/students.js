@@ -140,12 +140,72 @@ router.put('/:id', async (req, res) => {
       'avatarBg',
       'avatarColor',
       'barColor',
+      'parentId',
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) student[key] = req.body[key];
     }
     await student.save();
     res.json(student);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post('/:id/assign-parent', async (req, res) => {
+  try {
+    if (['admin', 'head_admin', 'school_admin'].indexOf(req.user.role) === -1) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: 'Not found' });
+    if (req.user.schoolId && student.schoolId.toString() !== req.user.schoolId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const { parentName, parentEmail } = req.body;
+    if (!parentEmail) return res.status(400).json({ message: 'Email required' });
+    
+    let parent = await User.findOne({ email: parentEmail.toLowerCase().trim() });
+    if (!parent) {
+      const hashed = await bcrypt.hash('password123', 10);
+      parent = await User.create({
+        name: parentName || 'Parent',
+        email: parentEmail.toLowerCase().trim(),
+        password: hashed,
+        role: 'parent',
+        avatarInitials: (parentName || 'P')
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase(),
+        schoolId: student.schoolId,
+        childId: student._id
+      });
+    } else {
+      parent.childId = student._id;
+      await parent.save();
+    }
+    student.parentId = parent._id;
+    await student.save();
+    res.json({ student, parent });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    if (['admin', 'head_admin', 'school_admin'].indexOf(req.user.role) === -1) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: 'Not found' });
+    if (req.user.schoolId && student.schoolId.toString() !== req.user.schoolId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    await Student.findByIdAndDelete(req.params.id);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

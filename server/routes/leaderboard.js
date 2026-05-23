@@ -2,6 +2,7 @@ import { Router } from 'express';
 import mongoose from 'mongoose';
 import LeaderboardEntry from '../models/LeaderboardEntry.js';
 import Student from '../models/Student.js';
+import { getIO } from '../socket.js';
 
 const router = Router();
 
@@ -89,7 +90,37 @@ router.post('/award', async (req, res) => {
     student.points = (student.points || 0) + Number(points);
     await student.save();
     await recalcRanks(req.user.schoolId);
+    
+    // Emit real-time event to the specific school room and the parent room
+    const io = getIO();
+    io.to(`school_${student.schoolId}`).emit('points_updated', { studentId, points: Number(points) });
+    if (student.parentId) {
+      io.to(`user_${student.parentId}`).emit('points_notification', {
+        studentId,
+        studentName: student.firstName,
+        points: Number(points),
+        reason: reason || ''
+      });
+    }
+
     res.status(201).json(entry);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.get('/history/:studentId', async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.studentId);
+    if (!student) return res.status(404).json({ message: 'Not found' });
+    if (
+      req.user.schoolId &&
+      student.schoolId.toString() !== req.user.schoolId
+    ) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const entries = await LeaderboardEntry.find({ studentId: req.params.studentId }).sort({ date: -1 });
+    res.json(entries);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

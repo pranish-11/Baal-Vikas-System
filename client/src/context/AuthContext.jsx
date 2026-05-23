@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import axios from '../api/axios.js';
 
 const AuthContext = createContext(null);
@@ -14,6 +14,19 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+
+  // Added token validation on mount
+  useEffect(() => {
+    if (user?.token) {
+      axios.get('/api/auth/me').then((res) => {
+        const next = { ...res.data.user, token: user.token };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        setUser(next);
+      }).catch(() => {
+        logout();
+      });
+    }
+  }, []);
 
   const login = async (email, password) => {
     const { data } = await axios.post('/api/auth/login', { email, password });

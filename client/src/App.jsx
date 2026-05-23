@@ -8,6 +8,7 @@ import {
 } from 'react-router-dom';
 import axios from './api/axios.js';
 import { useAuth } from './context/AuthContext.jsx';
+import { useSocket } from './context/SocketContext.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import Topbar from './components/Topbar.jsx';
 import Modal from './components/Modal.jsx';
@@ -20,6 +21,8 @@ import Messages from './pages/Messages.jsx';
 import Complaints from './pages/Complaints.jsx';
 import Schools from './pages/Schools.jsx';
 import MyChild from './pages/MyChild.jsx';
+import Cctv from './pages/Cctv.jsx';
+import AttendanceFees from './pages/AttendanceFees.jsx';
 
 function defaultPath(role) {
   if (role === 'parent') return '/my-child';
@@ -43,6 +46,8 @@ const ROUTE_META = {
   '/complaints': { title: 'Complaints', subtitle: 'Issues and follow-up' },
   '/schools': { title: 'Schools', subtitle: 'Network and registration' },
   '/my-child': { title: 'My Child', subtitle: 'Progress and wellbeing' },
+  '/cctv': { title: 'CCTV Security', subtitle: 'Live security feeds' },
+  '/fees': { title: 'Attendance & Fees', subtitle: 'Financial overview' },
 };
 
 function Shell() {
@@ -55,6 +60,8 @@ function Shell() {
   const [studentsRefreshKey, setStudentsRefreshKey] = useState(0);
   const [complaintsRefreshKey, setComplaintsRefreshKey] = useState(0);
   const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
+  const [liveNotifs, setLiveNotifs] = useState([]);
+  const socket = useSocket();
 
   const [awardOpen, setAwardOpen] = useState(false);
   const [awardStudentId, setAwardStudentId] = useState('');
@@ -104,6 +111,27 @@ function Shell() {
   useEffect(() => {
     refreshBadges();
   }, [loc.pathname]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const onPoints = (data) => {
+      setLiveNotifs((n) => [{ id: Date.now(), text: `Points updated for ${data.studentName}: ${data.points > 0 ? '+'+data.points : data.points}` }, ...n].slice(0, 10));
+    };
+    const onNewMessage = () => refreshBadges();
+    const onComplaintUpdate = () => refreshBadges();
+    
+    socket.on('points_notification', onPoints);
+    socket.on('new_message', onNewMessage);
+    socket.on('new_complaint', onComplaintUpdate);
+    socket.on('complaint_updated', onComplaintUpdate);
+    
+    return () => {
+      socket.off('points_notification', onPoints);
+      socket.off('new_message', onNewMessage);
+      socket.off('new_complaint', onComplaintUpdate);
+      socket.off('complaint_updated', onComplaintUpdate);
+    };
+  }, [socket]);
 
   useEffect(() => {
     if (awardOpen || registerOpen || complaintOpen) {
@@ -195,7 +223,7 @@ function Shell() {
   };
 
   const topCta = () => {
-    if (user?.role === 'admin') setRegisterOpen(true);
+    if (['head_admin', 'school_admin', 'admin'].includes(user?.role)) setRegisterOpen(true);
     else if (user?.role === 'teacher') {
       setAwardStudentId('');
       setAwardOpen(true);
@@ -212,8 +240,9 @@ function Shell() {
     () => [
       unread > 0 ? `${unread} unread message(s)` : null,
       openComplaints > 0 ? `${openComplaints} open complaint(s)` : null,
+      ...liveNotifs.map(n => n.text)
     ].filter(Boolean),
-    [unread, openComplaints]
+    [unread, openComplaints, liveNotifs]
   );
 
   return (
@@ -245,7 +274,7 @@ function Shell() {
 
       <Modal
         open={awardOpen}
-        title="Award Points"
+        title="Update Points"
         onClose={() => setAwardOpen(false)}
         footer={
           <>
@@ -279,7 +308,6 @@ function Shell() {
           <input
             type="number"
             className="form-input"
-            min="0"
             value={awardPoints}
             onChange={(e) => setAwardPoints(e.target.value)}
           />
@@ -518,7 +546,7 @@ export default function App() {
         <Route
           path="dashboard"
           element={
-            <Guard roles={['admin', 'teacher']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher']}>
               <Dashboard />
             </Guard>
           }
@@ -526,7 +554,7 @@ export default function App() {
         <Route
           path="students"
           element={
-            <Guard roles={['admin', 'teacher']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher']}>
               <Students />
             </Guard>
           }
@@ -534,7 +562,7 @@ export default function App() {
         <Route
           path="detection"
           element={
-            <Guard roles={['admin', 'teacher']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher']}>
               <Detection />
             </Guard>
           }
@@ -542,7 +570,7 @@ export default function App() {
         <Route
           path="leaderboard"
           element={
-            <Guard roles={['admin', 'teacher']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher']}>
               <Leaderboard />
             </Guard>
           }
@@ -550,7 +578,7 @@ export default function App() {
         <Route
           path="messages"
           element={
-            <Guard roles={['admin', 'teacher', 'parent']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher', 'parent']}>
               <Messages />
             </Guard>
           }
@@ -558,7 +586,7 @@ export default function App() {
         <Route
           path="complaints"
           element={
-            <Guard roles={['admin', 'teacher', 'parent']}>
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher', 'parent']}>
               <Complaints />
             </Guard>
           }
@@ -566,7 +594,7 @@ export default function App() {
         <Route
           path="schools"
           element={
-            <Guard roles={['admin']}>
+            <Guard roles={['head_admin', 'admin']}>
               <Schools />
             </Guard>
           }
@@ -576,6 +604,22 @@ export default function App() {
           element={
             <Guard roles={['parent']}>
               <MyChild />
+            </Guard>
+          }
+        />
+        <Route
+          path="cctv"
+          element={
+            <Guard roles={['head_admin', 'school_admin', 'admin', 'teacher', 'parent']}>
+              <Cctv />
+            </Guard>
+          }
+        />
+        <Route
+          path="fees"
+          element={
+            <Guard roles={['head_admin', 'school_admin', 'admin']}>
+              <AttendanceFees />
             </Guard>
           }
         />

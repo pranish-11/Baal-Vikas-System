@@ -4,9 +4,11 @@ const adminLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/students', label: 'Students', icon: '👧' },
   { to: '/detection', label: 'Detection', icon: '📷' },
+  { to: '/cctv', label: 'CCTV', icon: '📹' },
   { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/messages', label: 'Messages', icon: '💬' },
   { to: '/complaints', label: 'Complaints', icon: '📣' },
+  { to: '/fees', label: 'Fees', icon: '💰' },
   { to: '/schools', label: 'Schools', icon: '🏫' },
 ];
 
@@ -14,6 +16,7 @@ const teacherLinks = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/students', label: 'Students', icon: '👧' },
   { to: '/detection', label: 'Detection', icon: '📷' },
+  { to: '/cctv', label: 'CCTV', icon: '📹' },
   { to: '/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/messages', label: 'Messages', icon: '💬' },
   { to: '/complaints', label: 'Complaints', icon: '📣' },
@@ -21,6 +24,7 @@ const teacherLinks = [
 
 const parentLinks = [
   { to: '/my-child', label: 'My Child', icon: '👨‍👩‍👧' },
+  { to: '/cctv', label: 'CCTV', icon: '📹' },
   { to: '/messages', label: 'Messages', icon: '💬' },
   { to: '/complaints', label: 'Complaints', icon: '📣' },
 ];
@@ -34,12 +38,14 @@ export default function Sidebar({
   unreadMessages,
   openComplaints,
 }) {
-  const links =
-    role === 'admin'
-      ? adminLinks
-      : role === 'teacher'
-        ? teacherLinks
-        : parentLinks;
+  let links = parentLinks;
+  if (role === 'head_admin' || role === 'admin') {
+    links = adminLinks;
+  } else if (role === 'school_admin') {
+    links = adminLinks.filter(l => l.to !== '/schools');
+  } else if (role === 'teacher') {
+    links = teacherLinks;
+  }
 
   return (
     <>

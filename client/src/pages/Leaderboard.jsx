@@ -19,6 +19,16 @@ export default function Leaderboard() {
   const [editOpen, setEditOpen] = useState(false);
   const [rewardTexts, setRewardTexts] = useState(DEFAULT_REWARDS);
   const [draftRewards, setDraftRewards] = useState(DEFAULT_REWARDS);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [history, setHistory] = useState([]);
+  const [historyStudent, setHistoryStudent] = useState(null);
+
+  const loadHistory = async (student) => {
+    setHistoryStudent(student);
+    const res = await axios.get(`/api/leaderboard/history/${student._id}`);
+    setHistory(res.data);
+    setHistoryOpen(true);
+  };
 
   const load = () => {
     axios.get(`/api/leaderboard?period=${period}`).then((r) => setRows(r.data));
@@ -76,13 +86,16 @@ export default function Leaderboard() {
       <div className="card card-pad dashboard-stack-margin">
         <h2 className="title-font section-title">Full Ranked List</h2>
         {rows.map((s, i) => (
-          <LeaderboardRow
-            key={s._id}
-            rank={i + 1}
-            student={s}
-            maxPoints={maxPoints}
-            onAward={(id) => openAwardModal?.(id)}
-          />
+          <div key={s._id} onClick={() => loadHistory(s)} style={{ cursor: 'pointer' }}>
+            <LeaderboardRow
+              rank={i + 1}
+              student={s}
+              maxPoints={maxPoints}
+              onAward={(id) => {
+                openAwardModal?.(id);
+              }}
+            />
+          </div>
         ))}
       </div>
 
@@ -148,6 +161,34 @@ export default function Leaderboard() {
               setDraftRewards((x) => ({ ...x, bronze: e.target.value }))
             }
           />
+        </div>
+      </Modal>
+
+      <Modal
+        open={historyOpen}
+        title={`Points History: ${historyStudent?.firstName || ''}`}
+        onClose={() => setHistoryOpen(false)}
+        footer={
+          <button type="button" className="btn-ghost" onClick={() => setHistoryOpen(false)}>
+            Close
+          </button>
+        }
+      >
+        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          {history.length === 0 ? (
+            <div className="empty-hint">No history found.</div>
+          ) : (
+            history.map((h, i) => (
+              <div key={i} style={{ padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <strong>{h.points > 0 ? `+${h.points}` : h.points} Points</strong>
+                  <small style={{ color: 'var(--text3)' }}>{new Date(h.date).toLocaleDateString()}</small>
+                </div>
+                <div style={{ fontSize: '0.85rem' }}>{h.source}</div>
+                {h.reason && <div style={{ fontSize: '0.85rem', color: 'var(--text2)', marginTop: '0.25rem' }}>"{h.reason}"</div>}
+              </div>
+            ))
+          )}
         </div>
       </Modal>
     </div>

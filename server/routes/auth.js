@@ -87,4 +87,31 @@ router.post('/register', async (req, res) => {
   }
 });
 
+router.get('/me', async (req, res) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    const token = header.slice(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(401).json({ message: 'User not found' });
+
+    res.json({
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        avatarInitials: user.avatarInitials,
+        schoolId: user.schoolId,
+        childId: user.childId,
+      },
+    });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
 export default router;

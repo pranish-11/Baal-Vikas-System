@@ -37,9 +37,12 @@ export default function LeaderboardRow({
       <button
         type="button"
         className="btn-secondary btn-sm"
-        onClick={() => onAward?.(student._id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onAward?.(student._id);
+        }}
       >
-        + Points
+        ± Points
       </button>
     </div>
   );
