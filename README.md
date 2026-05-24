@@ -1,2 +1,0 @@
-# Baal-Vikas-System
-
