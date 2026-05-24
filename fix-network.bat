@@ -1,0 +1,3 @@
+@echo off
+echo Fixing Windows Firewall to allow your phone to connect to the backend...
+powershell -Command "Start-Process powershell -ArgumentList '-NoProfile -ExecutionPolicy Bypass -Command \"New-NetFirewallRule -DisplayName ''Axion API Backend (Port 8011)'' -Direction Inbound -LocalPort 8011 -Protocol TCP -Action Allow -Profile Any -ErrorAction SilentlyContinue; Write-Host ''Firewall fixed successfully! Your phone can now connect.''; Start-Sleep -Seconds 5\"' -Verb RunAs"

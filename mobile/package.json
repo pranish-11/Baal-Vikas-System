@@ -4,7 +4,7 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start -c",
+    "start": "node start-with-cloudflare.js",
     "start:plain": "expo start",
     "start:tunnel": "expo start --tunnel",
     "start:lan": "expo start --lan",

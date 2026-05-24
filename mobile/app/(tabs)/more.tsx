@@ -68,10 +68,16 @@ export default function MoreScreen() {
             <Text style={styles.linkLabel}>Complaints</Text>
           </TouchableOpacity>
           {user?.role === "ADMIN" && (
-            <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/classrooms")}>
-              <Text style={styles.linkEmoji}>🏫</Text>
-              <Text style={styles.linkLabel}>Classrooms</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/classrooms")}>
+                <Text style={styles.linkEmoji}>🏫</Text>
+                <Text style={styles.linkLabel}>Classrooms</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/teachers")}>
+                <Text style={styles.linkEmoji}>👩‍🏫</Text>
+                <Text style={styles.linkLabel}>Teachers</Text>
+              </TouchableOpacity>
+            </>
           )}
           {user?.role === "PARENT" && (
             <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/ai-chat")}>
@@ -79,6 +85,10 @@ export default function MoreScreen() {
               <Text style={styles.linkLabel}>AI Chat</Text>
             </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/leaderboard")}>
+            <Text style={styles.linkEmoji}>🏆</Text>
+            <Text style={styles.linkLabel}>Leaderboard</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Server Status */}

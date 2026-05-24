@@ -113,7 +113,7 @@ export default function ClassroomDetailScreen() {
                 ListEmptyComponent={<Text style={styles.empty}>No teachers found</Text>}
               />
             )}
-            <TouchableOpacity style={styles.newTeacherBtn} onPress={() => { setShowTeacherModal(false); router.push("/classrooms/add-teacher"); }}>
+            <TouchableOpacity style={styles.newTeacherBtn} onPress={() => { setShowTeacherModal(false); router.push("/teachers/add"); }}>
               <Text style={styles.newTeacherBtnText}>+ Create New Teacher</Text>
             </TouchableOpacity>
           </View>

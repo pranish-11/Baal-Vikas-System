@@ -15,7 +15,7 @@ model User {
   role          String // "ADMIN" | "TEACHER" | "PARENT"
   avatarUrl     String?
   createdAt     DateTime       @default(now())
-  teacherClass  Classroom?     @relation("TeacherClass")
+  teacherClasses Classroom[]     @relation("TeacherClass")
   children      Student[]      @relation("ParentChildren")
   sentMessages  Message[]      @relation("MessageSender")
   notifications Notification[]
@@ -40,7 +40,7 @@ model Classroom {
   name      String
   schoolId  String    @db.ObjectId
   school    School    @relation(fields: [schoolId], references: [id])
-  teacherId String?   @unique @db.ObjectId
+  teacherId String?   @db.ObjectId
   teacher   User?     @relation("TeacherClass", fields: [teacherId], references: [id])
   students  Student[]
   cameraUrl String?

@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../lib/auth";
@@ -81,10 +82,12 @@ export default function LoginScreen() {
       >
         {/* Logo area */}
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>A</Text>
-          </View>
-          <Text style={styles.appName}>Axion Montessori</Text>
+          <Image 
+            source={require("../assets/images/logo.png")} 
+            style={styles.logoImage} 
+            resizeMode="contain" 
+          />
+          <Text style={styles.appName}>BaalVikash</Text>
           <Text style={styles.tagline}>Nurturing growth, tracking progress</Text>
         </View>
 
@@ -197,6 +200,11 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: "center",
     marginBottom: 24,
+  },
+  logoImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 12,
   },
   logoCircle: {
     width: 72,

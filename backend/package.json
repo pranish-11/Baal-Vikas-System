@@ -4,7 +4,7 @@
   "description": "Axion Montessori API — Express + Prisma + MongoDB",
   "main": "src/server.js",
   "scripts": {
-    "dev": "nodemon src/server.js",
+    "dev": "node start-with-tunnel.js",
     "dev:clean": "powershell -ExecutionPolicy Bypass -File scripts/kill-port-8011.ps1 && nodemon src/server.js",
     "start": "node src/server.js",
     "boot:test": "node scripts/boot-test.js",

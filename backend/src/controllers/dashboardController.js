@@ -36,14 +36,16 @@ async function summary(req, res, next) {
     }
 
     if (role === "TEACHER") {
-      const classroom = await prisma.classroom.findUnique({
+      const classrooms = await prisma.classroom.findMany({
         where: { teacherId: userId },
         include: { students: true },
       });
 
       let todayAttendance = [];
-      if (classroom) {
-        const studentIds = classroom.students.map((s) => s.id);
+      let studentCount = 0;
+      if (classrooms.length > 0) {
+        const studentIds = classrooms.flatMap((c) => c.students.map((s) => s.id));
+        studentCount = studentIds.length;
         todayAttendance = await prisma.attendance.findMany({
           where: {
             studentId: { in: studentIds },
@@ -59,9 +61,9 @@ async function summary(req, res, next) {
 
       return res.json({
         role: "TEACHER",
-        classroomName: classroom?.name || "Not assigned",
-        classroomId: classroom?.id || null,
-        studentCount: classroom?.students.length || 0,
+        classroomName: classrooms.map(c => c.name).join(", ") || "Not assigned",
+        classroomId: classrooms.length > 0 ? classrooms[0].id : null,
+        studentCount: studentCount,
         todayPresent: present,
         todayTotal: todayAttendance.length,
       });

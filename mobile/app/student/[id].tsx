@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, ScrollView, ActivityIndicator, TouchableOpacity, TextInput, Alert, Modal } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
-import { getStudent, updateBehaviorPoints, createObservation } from "../../lib/api";
+import { getStudent, updateBehaviorPoints, createObservation, getClassrooms, assignClassroom } from "../../lib/api";
 import { Colors, Radius, Shadow } from "../../lib/theme";
 
 const OBS_TAGS = ["focused", "social", "eating well", "creative", "active", "curious", "helpful", "good listener", "energetic", "needs support", "quiet today"];
@@ -19,6 +19,8 @@ export default function StudentDetailScreen() {
   const [obsTags, setObsTags] = useState<string[]>([]);
   const [obsNote, setObsNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [classrooms, setClassrooms] = useState<any[]>([]);
   const isStaff = user?.role === "TEACHER" || user?.role === "ADMIN";
 
   const reload = async () => { try { setStudent(await getStudent(id!)); } catch {} };
@@ -41,6 +43,22 @@ export default function StudentDetailScreen() {
       reload();
     } catch (e: any) { Alert.alert("Error", e.message); }
     finally { setSaving(false); }
+  };
+
+  const handleReassign = async (classroomId: string) => {
+    setSaving(true);
+    try {
+      await assignClassroom(id!, classroomId);
+      Alert.alert("Success", "Student reassigned successfully");
+      setShowClassModal(false);
+      reload();
+    } catch (e: any) { Alert.alert("Error", e.message); }
+    finally { setSaving(false); }
+  };
+
+  const openClassModal = async () => {
+    setShowClassModal(true);
+    try { setClassrooms(await getClassrooms()); } catch (e) { console.warn(e); }
   };
 
   useEffect(() => {
@@ -95,6 +113,9 @@ export default function StudentDetailScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.obsBtn} onPress={() => setShowObs(true)}>
                 <Text style={styles.obsBtnText}>📝 Add Observation</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.obsBtn, { backgroundColor: Colors.skyPale }]} onPress={openClassModal}>
+                <Text style={[styles.obsBtnText, { color: Colors.sky }]}>🏫 Reassign</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -195,6 +216,26 @@ export default function StudentDetailScreen() {
                 {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveText2}>Save</Text>}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reassign Modal */}
+      <Modal visible={showClassModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <Text style={styles.modalTitle}>Reassign Classroom</Text>
+              <TouchableOpacity onPress={() => setShowClassModal(false)}><Text style={{ color: Colors.coral, fontWeight: "600" }}>Close</Text></TouchableOpacity>
+            </View>
+            {saving ? <ActivityIndicator size="large" color={Colors.primary} style={{ marginVertical: 40 }} /> : (
+              classrooms.map(c => (
+                <TouchableOpacity key={c.id} style={{ paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: Colors.border }} onPress={() => handleReassign(c.id)}>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: Colors.text }}>{c.name}</Text>
+                  <Text style={{ fontSize: 12, color: Colors.text3, marginTop: 4 }}>Teacher: {c.teacher}</Text>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </View>
       </Modal>

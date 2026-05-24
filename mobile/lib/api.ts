@@ -2,12 +2,12 @@ import Constants from "expo-constants";
 import axios, { AxiosError } from "axios";
 
 const resolveApiUrl = (): string => {
+  // EXPO_PUBLIC_API_URL is set automatically via mobile/.env 
+  // (written by backend's start-with-tunnel.js)
   const envUrl = process.env.EXPO_PUBLIC_API_URL;
   if (envUrl) return envUrl.replace(/\/$/, "");
-  const configUrl = Constants.expoConfig?.extra?.apiUrl;
-  if (configUrl) return configUrl.replace(/\/$/, "");
   
-  // Default to your computer's local IP on port 8011
+  // Fallback to local network (only works if firewall allows it)
   return "http://192.168.2.108:8011";
 };
 
@@ -57,6 +57,7 @@ export const getDashboard = () => api.get("/api/dashboard/summary").then((r) => 
 // --- Students ---
 export const getStudents = () => api.get("/api/students").then((r) => r.data);
 export const getStudent = (id: string) => api.get(`/api/students/${id}`).then((r) => r.data);
+export const getLeaderboard = (classroomId?: string) => api.get("/api/students/leaderboard", { params: classroomId ? { classroomId } : {} }).then((r) => r.data);
 
 // --- Attendance ---
 export const getAttendance = (params?: { studentId?: string; date?: string; classroomId?: string }) =>

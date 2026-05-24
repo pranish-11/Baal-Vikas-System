@@ -83,7 +83,7 @@ async function main() {
   const admin = await prisma.user.findUnique({ where: { email: "admin@axionschool.edu" } });
 
   const classrooms = [];
-  const teacherIds = [teacher.id, admin.id, parent.id];
+  const teacherIds = [teacher.id, admin.id, null];
   for (let i = 0; i < CLASSROOMS.length; i += 1) {
     const classroom = await prisma.classroom.create({
       data: { ...CLASSROOMS[i], schoolId: school.id, teacherId: teacherIds[i] },

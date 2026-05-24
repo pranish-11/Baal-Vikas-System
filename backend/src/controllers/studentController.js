@@ -6,8 +6,8 @@ async function list(req, res, next) {
     let where = {};
 
     if (role === "TEACHER") {
-      const classroom = await prisma.classroom.findUnique({ where: { teacherId: userId } });
-      if (classroom) where.classroomId = classroom.id;
+      const classrooms = await prisma.classroom.findMany({ where: { teacherId: userId } });
+      if (classrooms.length > 0) where.classroomId = { in: classrooms.map((c) => c.id) };
       else return res.json([]);
     } else if (role === "PARENT") {
       where.parentId = userId;
@@ -151,4 +151,36 @@ async function assignClassroom(req, res, next) {
   }
 }
 
-module.exports = { list, getById, create, assignClassroom };
+async function getLeaderboard(req, res, next) {
+  try {
+    const { classroomId } = req.query;
+    let where = {}; // Show all students regardless of points
+    
+    if (classroomId) {
+      where.classroomId = classroomId;
+    }
+
+    const students = await prisma.student.findMany({
+      where,
+      include: { classroom: { select: { name: true } } },
+      orderBy: { behaviorPoints: "desc" },
+      take: 50, // Top 50 max
+    });
+
+    return res.json(
+      students.map((s) => ({
+        id: s.id,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        classroom: s.classroom.name,
+        classroomId: s.classroomId,
+        behaviorPoints: s.behaviorPoints,
+        profilePhoto: s.profilePhoto,
+      }))
+    );
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { list, getById, create, assignClassroom, getLeaderboard };

@@ -34,8 +34,13 @@ export default function StudentsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Students</Text>
-        <Text style={styles.count}>{students.length} total</Text>
+        <View>
+          <Text style={styles.title}>Students</Text>
+          <Text style={styles.count}>{students.length} total</Text>
+        </View>
+        <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push("/leaderboard")}>
+          <Text style={styles.leaderboardBtnText}>🏆 Leaderboard</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.searchBox}>
         <Text style={styles.searchIcon}>🔍</Text>
@@ -79,6 +84,8 @@ const styles = StyleSheet.create({
   title: { fontSize: 24, fontWeight: "800", color: Colors.text },
   count: { fontSize: 13, color: Colors.text3, fontWeight: "600" },
   searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface, marginHorizontal: 16, borderRadius: Radius.md, paddingHorizontal: 14, marginBottom: 8, ...Shadow },
+  leaderboardBtn: { backgroundColor: Colors.goldPale, paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.gold },
+  leaderboardBtnText: { color: Colors.gold, fontWeight: "700", fontSize: 13 },
   searchIcon: { fontSize: 16, marginRight: 8 },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: Colors.text },
   list: { padding: 16, paddingTop: 4 },
