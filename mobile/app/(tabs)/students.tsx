@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, RefreshControl, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useAuth } from "../../lib/auth";
 import { getStudents } from "../../lib/api";
 import { Colors, Radius, Shadow } from "../../lib/theme";
 
 export default function StudentsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [students, setStudents] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -61,6 +63,11 @@ export default function StudentsScreen() {
         )}
         ListEmptyComponent={<Text style={styles.empty}>No students found</Text>}
       />
+      {(user?.role === "ADMIN" || user?.role === "TEACHER") && (
+        <TouchableOpacity style={styles.fab} onPress={() => router.push("/students/add")}>
+          <Text style={styles.fabIcon}>+</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -83,4 +90,6 @@ const styles = StyleSheet.create({
   pointsBadge: { backgroundColor: Colors.goldPale, width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
   pointsText: { fontSize: 12, fontWeight: "700", color: Colors.gold },
   empty: { textAlign: "center", color: Colors.text3, marginTop: 40, fontSize: 14 },
+  fab: { position: "absolute", bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary, alignItems: "center", justifyContent: "center", ...Shadow, elevation: 6 },
+  fabIcon: { fontSize: 30, color: "#fff", lineHeight: 32, fontWeight: "300" }
 });

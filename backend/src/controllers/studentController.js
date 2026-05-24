@@ -96,4 +96,59 @@ async function getById(req, res, next) {
   }
 }
 
-module.exports = { list, getById };
+async function create(req, res, next) {
+  try {
+    const { firstName, lastName, age, parentEmail, classroomId, enrollmentDate, medicalNotes } = req.body;
+    
+    // Check parent
+    const parent = await prisma.user.findUnique({ where: { email: parentEmail } });
+    if (!parent || parent.role !== "PARENT") {
+      return res.status(400).json({ error: "Invalid parent email or user is not a PARENT" });
+    }
+
+    // Check classroom
+    const classroom = await prisma.classroom.findUnique({ where: { id: classroomId } });
+    if (!classroom) {
+      return res.status(400).json({ error: "Invalid classroom ID" });
+    }
+
+    const student = await prisma.student.create({
+      data: {
+        firstName,
+        lastName,
+        age: Number(age),
+        parentId: parent.id,
+        classroomId,
+        enrollmentDate: enrollmentDate ? new Date(enrollmentDate) : new Date(),
+        medicalNotes,
+      },
+    });
+    
+    return res.status(201).json(student);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function assignClassroom(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { classroomId } = req.body;
+
+    const classroom = await prisma.classroom.findUnique({ where: { id: classroomId } });
+    if (!classroom) {
+      return res.status(400).json({ error: "Invalid classroom ID" });
+    }
+
+    const updated = await prisma.student.update({
+      where: { id },
+      data: { classroomId },
+    });
+
+    return res.json(updated);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { list, getById, create, assignClassroom };

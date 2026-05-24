@@ -47,4 +47,33 @@ async function getById(req, res, next) {
   }
 }
 
-module.exports = { list, getById };
+async function assignTeacher(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { teacherId } = req.body;
+    
+    // Check if classroom exists
+    const classroom = await prisma.classroom.findUnique({ where: { id } });
+    if (!classroom) return res.status(404).json({ error: "Classroom not found" });
+
+    // Validate teacher role
+    if (teacherId) {
+      const teacher = await prisma.user.findUnique({ where: { id: teacherId } });
+      if (!teacher || teacher.role !== "TEACHER") {
+        return res.status(400).json({ error: "Invalid teacher ID" });
+      }
+    }
+
+    // Assign teacher
+    const updated = await prisma.classroom.update({
+      where: { id },
+      data: { teacherId: teacherId || null },
+    });
+    
+    return res.json(updated);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { list, getById, assignTeacher };

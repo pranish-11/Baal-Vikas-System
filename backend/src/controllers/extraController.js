@@ -116,4 +116,30 @@ async function listContacts(req, res, next) {
   }
 }
 
-module.exports = { createObservation, updateBehaviorPoints, listContacts };
+// Admin only: create a teacher
+const bcrypt = require("bcryptjs");
+
+async function createTeacher(req, res, next) {
+  try {
+    const { role } = req.user;
+    if (role !== "ADMIN") return res.status(403).json({ error: "Only admins can create teachers" });
+
+    const { email, password, name } = req.body;
+    if (!email || !password || !name) return res.status(400).json({ error: "Missing required fields" });
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ error: "Email already exists" });
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const teacher = await prisma.user.create({
+      data: { email, passwordHash, name, role: "TEACHER" },
+      select: { id: true, email: true, name: true, role: true }
+    });
+
+    return res.status(201).json(teacher);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { createObservation, updateBehaviorPoints, listContacts, createTeacher };

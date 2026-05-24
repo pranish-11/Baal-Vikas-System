@@ -3,7 +3,7 @@ module.exports = ({ config }) => {
     ...config,
     extra: {
       apiUrl:
-        process.env.EXPO_PUBLIC_API_URL || "http://192.168.2.116:8011",
+        process.env.EXPO_PUBLIC_API_URL || "http://192.168.2.108:8011",
     },
   };
 };

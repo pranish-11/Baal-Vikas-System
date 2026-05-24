@@ -3,7 +3,7 @@ const crypto = require("crypto");
 const ALGORITHM = "aes-256-cbc";
 
 function getKey() {
-  const key = process.env.ENCRYPTION_KEY || "";
+  const key = (process.env.ENCRYPTION_KEY || "").trim();
   if (key.length !== 32) {
     throw new Error("ENCRYPTION_KEY must be exactly 32 characters");
   }

@@ -2,7 +2,13 @@ import Constants from "expo-constants";
 import axios, { AxiosError } from "axios";
 
 const resolveApiUrl = (): string => {
-  return "https://plain-trees-sing.loca.lt";
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) return envUrl.replace(/\/$/, "");
+  const configUrl = Constants.expoConfig?.extra?.apiUrl;
+  if (configUrl) return configUrl.replace(/\/$/, "");
+  
+  // Default to your computer's local IP on port 8011
+  return "http://192.168.2.108:8011";
 };
 
 export const API_BASE_URL = resolveApiUrl();
@@ -108,6 +114,20 @@ export const createObservation = (data: { studentId: string; tags: string[]; not
 // --- Behavior Points ---
 export const updateBehaviorPoints = (studentId: string, points: number, reason?: string) =>
   api.patch(`/api/students/${studentId}/behavior`, { points, reason }).then((r) => r.data);
+
+// --- Admin/Teacher Management ---
+export const assignTeacher = (classroomId: string, teacherId: string | null) =>
+  api.patch(`/api/classrooms/${classroomId}/assign-teacher`, { teacherId }).then((r) => r.data);
+
+export const createTeacher = (data: any) =>
+  api.post("/api/users/teacher", data).then((r) => r.data);
+
+export const createStudent = (data: any) =>
+  api.post("/api/students", data).then((r) => r.data);
+
+export const assignClassroom = (studentId: string, classroomId: string) =>
+  api.patch(`/api/students/${studentId}/classroom`, { classroomId }).then((r) => r.data);
+
 
 // --- Contacts ---
 export const getContacts = () => api.get("/api/contacts").then((r) => r.data);

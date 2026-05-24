@@ -67,6 +67,12 @@ export default function MoreScreen() {
             <Text style={styles.linkEmoji}>📮</Text>
             <Text style={styles.linkLabel}>Complaints</Text>
           </TouchableOpacity>
+          {user?.role === "ADMIN" && (
+            <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/classrooms")}>
+              <Text style={styles.linkEmoji}>🏫</Text>
+              <Text style={styles.linkLabel}>Classrooms</Text>
+            </TouchableOpacity>
+          )}
           {user?.role === "PARENT" && (
             <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/ai-chat")}>
               <Text style={styles.linkEmoji}>🤖</Text>
