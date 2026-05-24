@@ -31,18 +31,33 @@ export default function MessagesPage() {
       }
       // New conversation — create a thread for the sender
       const senderName = message?.senderName || message?.sender || 'Unknown';
+      const senderRole = message?.senderRole || 'Contact';
+      const currentUserId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
       const newThread = {
         id: threadId || 'sock-' + Date.now(),
-        sender: senderName,
-        role: message?.senderRole || 'Contact',
-        avi: senderName.substring(0, 2).toUpperCase(),
+        participants: [currentUserId, from],
+        participantNames: {
+          [currentUserId]: user?.name || 'Me',
+          [from]: senderName
+        },
+        participantRoles: {
+          [currentUserId]: currentRole?.toUpperCase() || 'USER',
+          [from]: senderRole
+        },
+        participantAvis: {
+          [currentUserId]: (user?.name || 'Me').substring(0, 2).toUpperCase(),
+          [from]: senderName.substring(0, 2).toUpperCase()
+        },
         aColor: 'var(--sky-pale)',
         aText: 'var(--sky)',
         preview: newChat.text,
         time: 'Just now',
         unread: true,
         chat: [newChat],
-        senderId: from,
+        senderId: from, // legacy
+        sender: senderName, // legacy
+        role: senderRole, // legacy
+        avi: senderName.substring(0, 2).toUpperCase(), // legacy
       };
       return [newThread, ...prev];
     });
@@ -79,16 +94,34 @@ export default function MessagesPage() {
     return () => clearInterval(interval);
   }, [messages]);
 
-  let pool = messages.filter(m => m.sender !== user?.name);
-  if (filter !== 'all') pool = pool.filter(m => m.role?.toUpperCase() === filter);
+  const getContactInfo = (m) => {
+    if (m.participants) {
+      const contactId = m.participants.find(id => id !== userId) || m.participants[0];
+      return {
+        name: m.participantNames?.[contactId] || m.sender,
+        role: m.participantRoles?.[contactId] || m.role,
+        avi: m.participantAvis?.[contactId] || m.avi,
+        id: contactId
+      };
+    }
+    return { name: m.sender, role: m.role, avi: m.avi, id: m.senderId };
+  };
+
+  let pool = messages.filter(m => {
+    if (m.participants) return m.participants.includes(userId);
+    return m.sender !== user?.name;
+  });
+
+  if (filter !== 'all') pool = pool.filter(m => getContactInfo(m).role?.toUpperCase() === filter);
   if (search) {
     const q = search.toLowerCase();
-    pool = pool.filter(m =>
-      m.sender.toLowerCase().includes(q) ||
-      m.role.toLowerCase().includes(q) ||
-      (m.preview || '').toLowerCase().includes(q) ||
-      (m.chat || []).some(c => c.text.toLowerCase().includes(q))
-    );
+    pool = pool.filter(m => {
+      const c = getContactInfo(m);
+      return c.name.toLowerCase().includes(q) ||
+        c.role.toLowerCase().includes(q) ||
+        (m.preview || '').toLowerCase().includes(q) ||
+        (m.chat || []).some(msg => msg.text.toLowerCase().includes(q));
+    });
   }
 
   useEffect(() => {
@@ -179,19 +212,21 @@ export default function MessagesPage() {
                 <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>No conversations yet</div>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>Click <strong>+</strong> to start a new message</div>
               </div>
-            ) : pool.map(m => (
+            ) : pool.map(m => {
+              const c = getContactInfo(m);
+              return (
               <div key={m.id} className={`msg-item-row${m.id === currentMsgId ? ' active' : ''}`}
                 onMouseEnter={e => { const el = e.currentTarget.querySelector('.msg-del-btn'); if (el) el.style.opacity = '1'; }}
                 onMouseLeave={e => { const el = e.currentTarget.querySelector('.msg-del-btn'); if (el) el.style.opacity = '0'; }}>
                 <div className="msg-item-avi" style={{ background: m.aColor, color: m.aText, position: 'relative' }} onClick={() => switchMsg(m.id)}>
-                  {m.avi}
+                  {c.avi}
                 </div>
                 <div className="msg-item-body" onClick={() => switchMsg(m.id)}>
                   <div className="msg-sender-row">
-                    <div className="msg-sender">{m.sender}{m.unread ? <span className="msg-unread-dot" /> : ''}</div>
+                    <div className="msg-sender">{c.name}{m.unread ? <span className="msg-unread-dot" /> : ''}</div>
                     <div className="msg-time-label">{m.time}</div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginTop: 1 }}>{m.role === 'TEACHER' ? 'Teacher' : m.role === 'PARENT' ? 'Parent' : m.role === 'ADMIN' ? 'Admin' : m.role === 'Contact' ? 'Contact' : m.role}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, marginTop: 1 }}>{c.role === 'TEACHER' ? 'Teacher' : c.role === 'PARENT' ? 'Parent' : c.role === 'ADMIN' ? 'Admin' : c.role === 'Contact' ? 'Contact' : c.role}</div>
                   <div className="msg-preview">{m.preview || 'No messages yet'}</div>
                 </div>
                 <button className="msg-del-btn" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'var(--coral-pale)', border: 'none', width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', color: 'var(--coral)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity .15s' }}
@@ -199,7 +234,7 @@ export default function MessagesPage() {
                   <Trash2 size={12} />
                 </button>
               </div>
-            ))}
+            )})}
           </div>
         </div>
         <div className="msg-pane">
@@ -207,15 +242,17 @@ export default function MessagesPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text3)', fontSize: 14, fontWeight: 800 }}>
               Select a conversation
             </div>
-          ) : (
+          ) : (() => {
+            const currentContact = getContactInfo(currentMsg);
+            return (
             <>
               <div className="msg-pane-header">
                 <div className="user-avi" style={{ background: currentMsg.aColor, color: currentMsg.aText, fontSize: 13, fontWeight: 800, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {currentMsg.avi}
+                  {currentContact.avi}
                 </div>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 800 }}>{currentMsg.sender}</div>
-                  <div className="text-muted">{currentMsg.role}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800 }}>{currentContact.name}</div>
+                  <div className="text-muted">{currentContact.role}</div>
                 </div>
                 <button style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--coral)', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700 }}
                   onClick={() => deleteConversation(currentMsg.id)} title="Delete conversation">
@@ -289,11 +326,11 @@ export default function MessagesPage() {
                     {fileToSend.name}
                   </span>
                 )}
-                <input className="msg-input" id="msg-input-field" placeholder={`Reply to ${currentMsg.sender}...`} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
+                <input className="msg-input" id="msg-input-field" placeholder={`Reply to ${currentContact.name}...`} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleSend(); }} />
                 <button className="send-btn" onClick={handleSend}><Send size={16} /></button>
               </div>
             </>
-          )}
+          );})()}
         </div>
       </div>
     </div>

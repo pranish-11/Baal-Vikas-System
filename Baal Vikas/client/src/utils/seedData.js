@@ -11,25 +11,33 @@ export function seedDefaultData() {
 
   const messages = [
     {
-      id: 'msg-1', sender: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK',
+      id: 'msg-1', 
+      participants: ['parent_lena_axion_edu', 'admin_axion_edu'],
+      participantNames: { 'parent_lena_axion_edu': 'Mrs. Lena Kim', 'admin_axion_edu': 'Admin User' },
+      participantRoles: { 'parent_lena_axion_edu': 'PARENT', 'admin_axion_edu': 'ADMIN' },
+      participantAvis: { 'parent_lena_axion_edu': 'LK', 'admin_axion_edu': 'AD' },
       aColor: 'var(--coral-pale)', aText: 'var(--coral)',
       preview: 'Thank you for the update!', time: '10:30 AM',
-      unread: false, senderId: 'parent-lena',
+      unread: false, senderId: 'parent_lena_axion_edu', sender: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK',
       chat: [
-        { from: 'in', text: 'Good morning! Liam had a great day today.', time: '9:15 AM' },
-        { from: 'out', text: "That's wonderful to hear! What did he do?", time: '9:45 AM' },
-        { from: 'in', text: 'He helped organize the reading corner and shared his snack with Sophia.', time: '10:00 AM' },
-        { from: 'out', text: 'Thank you for the update!', time: '10:30 AM' },
+        { from: 'in', authorId: 'admin_axion_edu', text: 'Good morning! Liam had a great day today.', time: '9:15 AM' },
+        { from: 'out', authorId: 'parent_lena_axion_edu', text: "That's wonderful to hear! What did he do?", time: '9:45 AM' },
+        { from: 'in', authorId: 'admin_axion_edu', text: 'He helped organize the reading corner and shared his snack with Sophia.', time: '10:00 AM' },
+        { from: 'out', authorId: 'parent_lena_axion_edu', text: 'Thank you for the update!', time: '10:30 AM' },
       ],
     },
     {
-      id: 'msg-2', sender: 'Ms. Anika Roy (Teacher)', role: 'TEACHER', avi: 'AR',
+      id: 'msg-2',
+      participants: ['teacher_anika_axion_edu', 'parent_lena_axion_edu'],
+      participantNames: { 'teacher_anika_axion_edu': 'Ms. Anika Roy (Teacher)', 'parent_lena_axion_edu': 'Mrs. Lena Kim' },
+      participantRoles: { 'teacher_anika_axion_edu': 'TEACHER', 'parent_lena_axion_edu': 'PARENT' },
+      participantAvis: { 'teacher_anika_axion_edu': 'AR', 'parent_lena_axion_edu': 'LK' },
       aColor: 'var(--sky-pale)', aText: 'var(--sky)',
       preview: 'Please send Liam with outdoor shoes tomorrow.', time: '2:00 PM',
-      unread: false, senderId: 'teacher-anika',
+      unread: false, senderId: 'teacher_anika_axion_edu', sender: 'Ms. Anika Roy (Teacher)', role: 'TEACHER', avi: 'AR',
       chat: [
-        { from: 'out', text: 'Just a reminder — tomorrow is outdoor play day.', time: '1:30 PM' },
-        { from: 'in', text: 'Please send Liam with outdoor shoes and a hat.', time: '2:00 PM' },
+        { from: 'out', authorId: 'parent_lena_axion_edu', text: 'Just a reminder — tomorrow is outdoor play day.', time: '1:30 PM' },
+        { from: 'in', authorId: 'teacher_anika_axion_edu', text: 'Please send Liam with outdoor shoes and a hat.', time: '2:00 PM' },
       ],
     },
   ];

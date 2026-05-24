@@ -60,7 +60,8 @@ export function AppProvider({ children }) {
     try {
       const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations')));
       const msgs = JSON.parse(localStorage.getItem('axion_messages')) || [];
-      return msgs.filter(m => !deleted.has(m.id));
+      // Filter out deleted messages and legacy messages without participants
+      return msgs.filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants));
     } catch { return []; }
   });
   const [schools, setSchools] = useState(() => {
@@ -173,7 +174,7 @@ export function AppProvider({ children }) {
       const restored = await syncAllFromDB();
       if (restored > 0) console.log(`Restored ${restored} data blobs from DB`);
       // Fall back to localStorage
-      try { const v = localStorage.getItem('axion_messages'); if (v) setMessages(JSON.parse(v)); } catch {}
+      try { const v = localStorage.getItem('axion_messages'); if (v) { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(v).filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants))); } } catch {}
       try { const v = localStorage.getItem('axion_students_cache'); if (v) setStudents(JSON.parse(v)); } catch {}
       try { const v = localStorage.getItem('axion_complaints'); if (v) setComplaints(JSON.parse(v)); } catch {}
       try { const v = localStorage.getItem('axion_fees'); if (v) setFees(JSON.parse(v)); } catch {}
@@ -199,7 +200,7 @@ export function AppProvider({ children }) {
   // Cross-tab real-time sync via localStorage events
   useEffect(() => {
     const handleStorage = (e) => {
-      if (e.key === 'axion_messages') { try { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(e.newValue || '[]').filter(m => !deleted.has(m.id))); } catch {} }
+      if (e.key === 'axion_messages') { try { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(e.newValue || '[]').filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants))); } catch {} }
       if (e.key === 'axion_attendance') { try { setAttendanceData(JSON.parse(e.newValue || '{}')); } catch {} }
       if (e.key === 'axion_students_cache') { try { setStudents(JSON.parse(e.newValue || '[]')); } catch {} }
       if (e.key === 'axion_awarded_rewards') { try { setAwardedRewards(JSON.parse(e.newValue || '[]')); } catch {} }
@@ -704,18 +705,32 @@ export function AppProvider({ children }) {
 
   const startChatWith = useCallback(async (recipientId, recipientName, recipientRole) => {
     closeModal();
+    const currentUserId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
     const newMsg = {
       id: 'msg-' + Date.now(),
-      sender: recipientName,
-      role: recipientRole || 'Contact',
-      avi: recipientName.substring(0, 2).toUpperCase(),
+      participants: [currentUserId, recipientId],
+      participantNames: {
+        [currentUserId]: user?.name || 'Me',
+        [recipientId]: recipientName
+      },
+      participantRoles: {
+        [currentUserId]: currentRole?.toUpperCase() || 'USER',
+        [recipientId]: recipientRole || 'Contact'
+      },
+      participantAvis: {
+        [currentUserId]: (user?.name || 'Me').substring(0, 2).toUpperCase(),
+        [recipientId]: recipientName.substring(0, 2).toUpperCase()
+      },
       aColor: 'var(--sky-pale)',
       aText: 'var(--sky)',
       preview: 'No messages yet. Say hello!',
       time: 'Now',
       unread: false,
       chat: [],
-      senderId: recipientId,
+      senderId: recipientId, // legacy fallback
+      sender: recipientName, // legacy fallback
+      role: recipientRole || 'Contact', // legacy fallback
+      avi: recipientName.substring(0, 2).toUpperCase(), // legacy fallback
     };
     setMessages(prev => {
       const merged = [newMsg, ...prev];
