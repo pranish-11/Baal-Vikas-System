@@ -53,9 +53,9 @@ async function main() {
 
   await prisma.messageChat.createMany({
     data: [
-      { threadId: thread1.id, senderId: userKim.id, text: "Hello, how did Liam do in class today?", timeLabel: "10:00 AM" },
-      { threadId: thread1.id, senderId: userTeacher.id, text: "He was very focused and helped his peers.", timeLabel: "10:06 AM" },
-      { threadId: thread1.id, senderId: userKim.id, text: "Thank you for sharing Liam's progress today!", timeLabel: "10:15 AM" },
+      { threadId: thread1.id, senderId: userKim.id, recipientId: userTeacher.id, text: "Hello, how did Liam do in class today?", timeLabel: "10:00 AM" },
+      { threadId: thread1.id, senderId: userTeacher.id, recipientId: userKim.id, text: "He was very focused and helped his peers.", timeLabel: "10:06 AM" },
+      { threadId: thread1.id, senderId: userKim.id, recipientId: userTeacher.id, text: "Thank you for sharing Liam's progress today!", timeLabel: "10:15 AM" },
     ],
   });
 

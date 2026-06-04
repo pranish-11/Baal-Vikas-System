@@ -17,9 +17,9 @@ function authMiddleware(req, res, next) {
     const roleKey = parts[parts.length - 1];
     const role = roleMap[roleKey] || 'ADMIN';
     const profiles = {
-      admin: { userId: '000000000000000000000000', role: 'ADMIN', email: 'admin@axion.edu', name: 'Admin User' },
-      teacher: { userId: '000000000000000000000001', role: 'TEACHER', email: 'anika@axion.edu', name: 'Ms. Anika Roy' },
-      parent: { userId: '000000000000000000000002', role: 'PARENT', email: 'lena@axion.edu', name: 'Mrs. Lena Kim' },
+      admin: { userId: '000000000000000000000000', role: 'ADMIN', email: 'admin@axionschool.edu', name: 'Admin User' },
+      teacher: { userId: '000000000000000000000001', role: 'TEACHER', email: 'anika.roy@axionschool.edu', name: 'Ms. Anika Roy' },
+      parent: { userId: '000000000000000000000002', role: 'PARENT', email: 'lena.kim@parent.edu', name: 'Mrs. Lena Kim' },
     };
     req.user = profiles[roleKey] || profiles.admin;
     return next();

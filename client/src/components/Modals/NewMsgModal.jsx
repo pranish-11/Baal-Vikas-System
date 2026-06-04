@@ -19,15 +19,22 @@ export default function NewMsgModal({ open, onClose }) {
         }).catch(() => {
           const mockByRole = {
             admin: [
-              { id: 'anika_axion_edu', name: 'Ms. Anika Roy', role: 'TEACHER', avi: 'AR', aColor: 'var(--sky-pale)', aText: 'var(--sky)' },
-              { id: 'lena_axion_edu', name: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'teacher_anika_roy_axionschool_edu', name: 'Ms. Anika Roy', role: 'TEACHER', avi: 'AR', aColor: 'var(--sky-pale)', aText: 'var(--sky)' },
+              { id: 'parent_lena_kim_parent_edu', name: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_mei_axion_edu', name: 'Mrs. Mei Chen', role: 'PARENT', avi: 'MC', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_priya_axion_edu', name: 'Mrs. Priya Sharma', role: 'PARENT', avi: 'PS', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_sarah_axion_edu', name: 'Mrs. Sarah Wilson', role: 'PARENT', avi: 'SW', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_raj_axion_edu', name: 'Mr. Raj Patel', role: 'PARENT', avi: 'RP', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
             ],
             teacher: [
-              { id: 'lena_axion_edu', name: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
-              { id: 'mei_axion_edu', name: 'Mrs. Mei Chen', role: 'PARENT', avi: 'MC', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_lena_kim_parent_edu', name: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_mei_axion_edu', name: 'Mrs. Mei Chen', role: 'PARENT', avi: 'MC', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_priya_axion_edu', name: 'Mrs. Priya Sharma', role: 'PARENT', avi: 'PS', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_sarah_axion_edu', name: 'Mrs. Sarah Wilson', role: 'PARENT', avi: 'SW', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
+              { id: 'parent_raj_axion_edu', name: 'Mr. Raj Patel', role: 'PARENT', avi: 'RP', aColor: 'var(--coral-pale)', aText: 'var(--coral)' },
             ],
             parent: [
-              { id: 'anika_axion_edu', name: 'Ms. Anika Roy', role: 'TEACHER', avi: 'AR', aColor: 'var(--sky-pale)', aText: 'var(--sky)' },
+              { id: 'teacher_anika_roy_axionschool_edu', name: 'Ms. Anika Roy', role: 'TEACHER', avi: 'AR', aColor: 'var(--sky-pale)', aText: 'var(--sky)' },
             ],
           };
           setAllEligibleUsers(mockByRole[currentRole] || mockByRole.admin);
@@ -39,13 +46,9 @@ export default function NewMsgModal({ open, onClose }) {
   if (!open) return null;
 
   const currentUserName = user?.name || '';
-  const existingContactIds = new Set(messages.map(m => m.senderId || m.id));
-  const existingNames = new Set(messages.map(m => m.sender));
 
   const eligible = allEligibleUsers.filter(u => {
     if (u.name === currentUserName) return false;
-    if (existingContactIds.has(u.id)) return false;
-    if (existingNames.has(u.name)) return false;
     return true;
   });
 

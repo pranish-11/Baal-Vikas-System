@@ -1,8 +1,9 @@
+const SEED_VERSION = '2';
 export function seedDefaultData() {
-  if (localStorage.getItem('axion_seed_done')) return;
+  if (localStorage.getItem('axion_seed_done') === SEED_VERSION) return;
 
   const students = [
-    { id: 'std-1', name: 'Liam Kim', init: 'LK', age: 5, class: 'Room 3 — Sunflower Class', pts: 85, pct: 68, rank: 1, bg: '#E0F2FE', col: '#0E7490', parentName: 'Mrs. Lena Kim', parentEmail: 'lena@axion.edu' },
+    { id: 'std-1', name: 'Liam Kim', init: 'LK', age: 5, class: 'Room 3 — Sunflower Class', pts: 85, pct: 68, rank: 1, bg: '#E0F2FE', col: '#0E7490', parentName: 'Mrs. Lena Kim', parentEmail: 'lena.kim@parent.edu' },
     { id: 'std-2', name: 'Sophia Chen', init: 'SC', age: 4, class: 'Room 3 — Sunflower Class', pts: 72, pct: 55, rank: 2, bg: '#FCE7F3', col: '#BE185D', parentName: 'Mrs. Mei Chen', parentEmail: 'mei@axion.edu' },
     { id: 'std-3', name: 'Noah Patel', init: 'NP', age: 5, class: 'Room 2 — Rainbow Room', pts: 90, pct: 75, rank: 1, bg: '#D1FAE5', col: '#047857', parentName: 'Mr. Raj Patel', parentEmail: 'raj@axion.edu' },
     { id: 'std-4', name: 'Emma Wilson', init: 'EW', age: 4, class: 'Room 2 — Rainbow Room', pts: 60, pct: 42, rank: 3, bg: '#FEF3C7', col: '#B45309', parentName: 'Mrs. Sarah Wilson', parentEmail: 'sarah@axion.edu' },
@@ -12,32 +13,32 @@ export function seedDefaultData() {
   const messages = [
     {
       id: 'msg-1', 
-      participants: ['parent_lena_axion_edu', 'admin_axion_edu'],
-      participantNames: { 'parent_lena_axion_edu': 'Mrs. Lena Kim', 'admin_axion_edu': 'Admin User' },
-      participantRoles: { 'parent_lena_axion_edu': 'PARENT', 'admin_axion_edu': 'ADMIN' },
-      participantAvis: { 'parent_lena_axion_edu': 'LK', 'admin_axion_edu': 'AD' },
+      participants: ['parent_lena_kim_parent_edu', 'admin_axionschool_edu'],
+      participantNames: { 'parent_lena_kim_parent_edu': 'Mrs. Lena Kim', 'admin_axionschool_edu': 'Admin User' },
+      participantRoles: { 'parent_lena_kim_parent_edu': 'PARENT', 'admin_axionschool_edu': 'ADMIN' },
+      participantAvis: { 'parent_lena_kim_parent_edu': 'LK', 'admin_axionschool_edu': 'AD' },
       aColor: 'var(--coral-pale)', aText: 'var(--coral)',
       preview: 'Thank you for the update!', time: '10:30 AM',
-      unread: false, senderId: 'parent_lena_axion_edu', sender: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK',
+      unread: false, senderId: 'parent_lena_kim_parent_edu', sender: 'Mrs. Lena Kim', role: 'PARENT', avi: 'LK',
       chat: [
-        { from: 'in', authorId: 'admin_axion_edu', text: 'Good morning! Liam had a great day today.', time: '9:15 AM' },
-        { from: 'out', authorId: 'parent_lena_axion_edu', text: "That's wonderful to hear! What did he do?", time: '9:45 AM' },
-        { from: 'in', authorId: 'admin_axion_edu', text: 'He helped organize the reading corner and shared his snack with Sophia.', time: '10:00 AM' },
-        { from: 'out', authorId: 'parent_lena_axion_edu', text: 'Thank you for the update!', time: '10:30 AM' },
+        { from: 'in', authorId: 'admin_axionschool_edu', text: 'Good morning! Liam had a great day today.', time: '9:15 AM' },
+        { from: 'out', authorId: 'parent_lena_kim_parent_edu', text: "That's wonderful to hear! What did he do?", time: '9:45 AM' },
+        { from: 'in', authorId: 'admin_axionschool_edu', text: 'He helped organize the reading corner and shared his snack with Sophia.', time: '10:00 AM' },
+        { from: 'out', authorId: 'parent_lena_kim_parent_edu', text: 'Thank you for the update!', time: '10:30 AM' },
       ],
     },
     {
       id: 'msg-2',
-      participants: ['teacher_anika_axion_edu', 'parent_lena_axion_edu'],
-      participantNames: { 'teacher_anika_axion_edu': 'Ms. Anika Roy (Teacher)', 'parent_lena_axion_edu': 'Mrs. Lena Kim' },
-      participantRoles: { 'teacher_anika_axion_edu': 'TEACHER', 'parent_lena_axion_edu': 'PARENT' },
-      participantAvis: { 'teacher_anika_axion_edu': 'AR', 'parent_lena_axion_edu': 'LK' },
+      participants: ['teacher_anika_roy_axionschool_edu', 'parent_lena_kim_parent_edu'],
+      participantNames: { 'teacher_anika_roy_axionschool_edu': 'Ms. Anika Roy', 'parent_lena_kim_parent_edu': 'Mrs. Lena Kim' },
+      participantRoles: { 'teacher_anika_roy_axionschool_edu': 'TEACHER', 'parent_lena_kim_parent_edu': 'PARENT' },
+      participantAvis: { 'teacher_anika_roy_axionschool_edu': 'AR', 'parent_lena_kim_parent_edu': 'LK' },
       aColor: 'var(--sky-pale)', aText: 'var(--sky)',
       preview: 'Please send Liam with outdoor shoes tomorrow.', time: '2:00 PM',
-      unread: false, senderId: 'teacher_anika_axion_edu', sender: 'Ms. Anika Roy (Teacher)', role: 'TEACHER', avi: 'AR',
+      unread: false, senderId: 'teacher_anika_roy_axionschool_edu', sender: 'Ms. Anika Roy', role: 'TEACHER', avi: 'AR',
       chat: [
-        { from: 'out', authorId: 'parent_lena_axion_edu', text: 'Just a reminder — tomorrow is outdoor play day.', time: '1:30 PM' },
-        { from: 'in', authorId: 'teacher_anika_axion_edu', text: 'Please send Liam with outdoor shoes and a hat.', time: '2:00 PM' },
+        { from: 'out', authorId: 'parent_lena_kim_parent_edu', text: 'Just a reminder — tomorrow is outdoor play day.', time: '1:30 PM' },
+        { from: 'in', authorId: 'teacher_anika_roy_axionschool_edu', text: 'Please send Liam with outdoor shoes and a hat.', time: '2:00 PM' },
       ],
     },
   ];
@@ -74,8 +75,8 @@ export function seedDefaultData() {
   };
 
   const teacherClassrooms = {
-    'anika@axion.edu': ['Room 3 — Sunflower Class'],
-    'admin@axion.edu': null,
+    'anika.roy@axionschool.edu': ['Room 3 — Sunflower Class'],
+    'admin@axionschool.edu': null,
   };
 
   const activities = [
@@ -84,9 +85,9 @@ export function seedDefaultData() {
   ];
 
   const savedProfiles = [
-    { email: 'admin@axion.edu', role: 'admin', name: 'Admin User', avi: 'AD' },
-    { email: 'anika@axion.edu', role: 'teacher', name: 'Ms. Anika Roy', avi: 'AR' },
-    { email: 'lena@axion.edu', role: 'parent', name: 'Mrs. Lena Kim', avi: 'LK' },
+    { email: 'admin@axionschool.edu', role: 'admin', name: 'Admin User', avi: 'AD' },
+    { email: 'anika.roy@axionschool.edu', role: 'teacher', name: 'Ms. Anika Roy', avi: 'AR' },
+    { email: 'lena.kim@parent.edu', role: 'parent', name: 'Mrs. Lena Kim', avi: 'LK' },
   ];
 
   try { localStorage.setItem('axion_students_cache', JSON.stringify(students)); } catch {}
@@ -99,5 +100,5 @@ export function seedDefaultData() {
   try { localStorage.setItem('axion_activities', JSON.stringify(activities)); } catch {}
   try { localStorage.setItem('axion_teacher_classrooms', JSON.stringify(teacherClassrooms)); } catch {}
   try { localStorage.setItem('axion_saved_profiles', JSON.stringify(savedProfiles)); } catch {}
-  try { localStorage.setItem('axion_seed_done', '1'); } catch {}
+  try { localStorage.setItem('axion_seed_done', SEED_VERSION); } catch {}
 }

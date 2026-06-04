@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { GripVertical } from 'lucide-react';
 import { queueSyncToDB } from '../utils/dbSync';
+import Hls from 'hls.js';
 
 export default function DetectionPage() {
   const { currentRole, students, attendanceData, user, getTeacherClassrooms } = useApp();
@@ -10,11 +11,94 @@ export default function DetectionPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const streamRef = useRef(null);
   const videoRefs = useRef({});
+  const hlsRefs = useRef({});
   const playgroundRef = useRef(null);
   const [cameraOrder, setCameraOrder] = useState(() => {
     try { return JSON.parse(localStorage.getItem('axion_camera_order')) || []; } catch { return []; }
   });
   const [dragIdx, setDragIdx] = useState(null);
+
+  const cctvBaseUrl = import.meta.env.VITE_CCTV_BASE_URL || '';
+  const remoteEnabled = Boolean(cctvBaseUrl);
+  const statusNote = remoteEnabled
+    ? 'Remote CCTV mode enabled (HLS stream URLs will be loaded from VITE_CCTV_BASE_URL).'
+    : 'Browser webcam mode. Set VITE_CCTV_BASE_URL in client/.env for real CCTV feeds.';
+
+  const cleanupFeed = (id) => {
+    const hls = hlsRefs.current[id];
+    if (hls) {
+      hls.destroy();
+      delete hlsRefs.current[id];
+    }
+  };
+
+  const getFeedUrl = (id) => {
+    if (!cctvBaseUrl) return null;
+    const feedKey = id === 'playground' ? 'playground' : String(id || '').trim().toLowerCase().replace(/\s+/g, '-');
+    return `${cctvBaseUrl.replace(/\/$/, '')}/${encodeURIComponent(feedKey)}.m3u8`;
+  };
+
+  const attachFeedToElement = (id, el) => {
+    if (!el) return;
+    const url = getFeedUrl(id);
+    cleanupFeed(id);
+    el.srcObject = null;
+    el.src = '';
+
+    if (url) {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(url);
+        hls.attachMedia(el);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          el.play().catch(() => {});
+          setCameraOnline(true);
+          setLoading(false);
+        });
+        hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            setErrorMsg(`CCTV stream error: ${data.type}`);
+            setLoading(false);
+            setCameraOnline(false);
+          }
+        });
+        hlsRefs.current[id] = hls;
+      } else if (el.canPlayType('application/vnd.apple.mpegurl')) {
+        el.src = url;
+        el.addEventListener('loadedmetadata', () => el.play().catch(() => {}), { once: true });
+        setCameraOnline(true);
+        setLoading(false);
+      } else {
+        setErrorMsg('Browser does not support HLS playback.');
+        setLoading(false);
+        setCameraOnline(false);
+      }
+      return;
+    }
+
+    if (streamRef.current) {
+      el.srcObject = streamRef.current;
+      el.play().catch(() => {});
+    }
+  };
+
+  const setVideoRef = (cn) => (el) => {
+    if (!el) {
+      delete videoRefs.current[cn];
+      return;
+    }
+    videoRefs.current[cn] = el;
+    attachFeedToElement(cn, el);
+  };
+
+  const setPlaygroundRef = (el) => {
+    if (!el) {
+      playgroundRef.current = null;
+      return;
+    }
+    playgroundRef.current = el;
+    attachFeedToElement('playground', el);
+  };
 
   const dateStr = new Date().toISOString().slice(0, 10);
   const rec = attendanceData[dateStr] || {};
@@ -112,32 +196,31 @@ export default function DetectionPage() {
   };
 
   useEffect(() => {
-    startCamera();
-    return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
-  }, []);
+    if (!remoteEnabled) {
+      startCamera();
+    }
+    return () => {
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      Object.keys(hlsRefs.current).forEach(cleanupFeed);
+    };
+  }, [remoteEnabled]);
 
   useEffect(() => {
-    if (cameraOnline) setStreamOnAll();
-  }, [cameraOnline]);
+    if (remoteEnabled) {
+      Object.entries(videoRefs.current).forEach(([id, el]) => attachFeedToElement(id, el));
+      if (playgroundRef.current) attachFeedToElement('playground', playgroundRef.current);
+    } else if (cameraOnline) {
+      setStreamOnAll();
+    }
+  }, [orderedFeeds, remoteEnabled, cameraOnline]);
 
-  const setVideoRef = (cn) => (el) => {
-    if (!el) return;
-    videoRefs.current[cn] = el;
-    if (streamRef.current && !el.srcObject) el.srcObject = streamRef.current;
-  };
-
-  const setPlaygroundRef = (el) => {
-    if (!el) return;
-    playgroundRef.current = el;
-    if (streamRef.current && !el.srcObject) el.srcObject = streamRef.current;
-  };
 
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div className="page-title" style={{ margin: 0 }}>CCTV Monitoring</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             {visibleClassrooms.map(cn => (
               <div key={cn} style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#f0fdf4' : 'var(--primary-pale)', color: cameraOnline ? '#16a34a' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
                 ● {cn.length > 20 ? cn.substring(0, 18) + '..' : cn}
@@ -147,11 +230,19 @@ export default function DetectionPage() {
               ● Playground
             </div>
           </div>
-          {cameraOnline ? (
-            <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12 }} onClick={stopCamera}>Stop</button>
-          ) : !loading ? (
-            <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={startCamera}>Retry Camera</button>
-          ) : null}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ fontSize: 12, color: 'var(--text3)' }}>{statusNote}</div>
+            {remoteEnabled ? (
+              <div style={{ padding: '6px 10px', borderRadius: 6, background: '#eef2ff', color: '#3730a3', fontSize: 12, fontWeight: 700 }}>
+                CCTV mode
+              </div>
+            ) : cameraOnline ? (
+              <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12 }} onClick={stopCamera}>Stop</button>
+            ) : !loading ? (
+              <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={startCamera}>Retry Camera</button>
+            ) : null}
+          </div>
+          {errorMsg && <div style={{ color: '#dc2626', fontSize: 13 }}>{errorMsg}</div>}
         </div>
       </div>
 

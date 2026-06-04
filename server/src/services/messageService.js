@@ -17,13 +17,8 @@ async function getEligibleUsers(user) {
 }
 
 async function getMessages(user) {
-  let whereClause = {};
-  if (user.role !== 'ADMIN') {
-    whereClause = { participantIds: { has: user.userId } };
-  }
-
   const threads = await prisma.messageThread.findMany({
-    where: whereClause,
+    where: { participantIds: { has: user.userId } },
     orderBy: { updatedAt: "desc" },
     include: {
       participants: true,
@@ -34,18 +29,7 @@ async function getMessages(user) {
   });
 
   return threads.map((thread) => {
-    // For admin: if they are a participant show the other person,
-    // otherwise show the non-admin participant (prefer teacher so teacher threads are visible)
-    let otherUser;
-    if (thread.participantIds.includes(user.userId)) {
-      otherUser = thread.participants.find(p => p.id !== user.userId) || thread.participants[0];
-    } else {
-      // Admin viewing a teacher↔parent thread — show the teacher as the label
-      otherUser =
-        thread.participants.find(p => p.role === 'TEACHER') ||
-        thread.participants.find(p => p.role === 'PARENT') ||
-        thread.participants[0];
-    }
+    let otherUser = thread.participants.find(p => p.id !== user.userId) || thread.participants[0];
 
     const avi = otherUser?.name?.substring(0, 2).toUpperCase() || 'U';
 
@@ -59,8 +43,21 @@ async function getMessages(user) {
       aColor = 'var(--primary-pale)'; aText = 'var(--primary)';
     }
 
+    const participantNames = {};
+    const participantRoles = {};
+    const participantAvis = {};
+    for (const p of thread.participants) {
+      participantNames[p.id] = p.name;
+      participantRoles[p.id] = p.role;
+      participantAvis[p.id] = p.name.substring(0, 2).toUpperCase();
+    }
+
     return {
       id: thread.id,
+      participants: thread.participantIds,
+      participantNames,
+      participantRoles,
+      participantAvis,
       senderId: otherUser?.id || null,
       sender: otherUser?.name || 'Unknown',
       role: otherUser?.role
@@ -96,25 +93,26 @@ async function addMessageChat(threadId, payload, user) {
     throw err;
   }
 
-  // Admin can reply to any thread; others must be a participant
-  if (user.role !== 'ADMIN' && !thread.participantIds.includes(user.userId)) {
+  // Sender must be a participant
+  if (!thread.participantIds.includes(user.userId)) {
     const err = new Error("Unauthorized to message in this thread");
     err.statusCode = 403;
     throw err;
   }
 
-  // If admin is not yet a participant, add them so their messages are tracked
-  if (user.role === 'ADMIN' && !thread.participantIds.includes(user.userId)) {
-    await prisma.messageThread.update({
-      where: { id: threadId },
-      data: { participantIds: { push: user.userId } },
-    });
+  // Recipient must be a participant in the thread
+  const { recipientId } = payload;
+  if (!recipientId || !thread.participantIds.includes(recipientId)) {
+    const err = new Error("Valid recipientId is required and must be a thread participant");
+    err.statusCode = 400;
+    throw err;
   }
 
   const created = await prisma.messageChat.create({
     data: {
       threadId,
       senderId: user.userId,
+      recipientId,
       text: payload.text,
       timeLabel: payload.time || 'Now',
     },
@@ -170,6 +168,7 @@ async function createThread(user, payload) {
     newThreadData.chats = {
       create: {
         senderId: user.userId,
+        recipientId,
         text: text,
         timeLabel: time || 'Now'
       }

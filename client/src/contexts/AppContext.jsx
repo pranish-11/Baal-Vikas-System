@@ -60,8 +60,7 @@ export function AppProvider({ children }) {
     try {
       const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations')));
       const msgs = JSON.parse(localStorage.getItem('axion_messages')) || [];
-      // Filter out deleted messages and legacy messages without participants
-      return msgs.filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants));
+      return msgs.filter(m => !deleted.has(m.id));
     } catch { return []; }
   });
   const [schools, setSchools] = useState(() => {
@@ -153,14 +152,12 @@ export function AppProvider({ children }) {
     setModalData(null);
   }, []);
 
-  // Data refresh — prefer backend, fall back to DB blobs, then localStorage
+  // Data refresh — prefer backend for non-message data, always use localStorage for messages
   const refreshData = useCallback(async () => {
     try {
       const data = await fetchAllData();
-      if (data.messages && data.messages.length > 0) {
-        const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations')));
-        setMessages(data.messages.filter(m => !deleted.has(m.id)));
-      }
+      // Messages use localStorage as source of truth (client-side IDs vs server ObjectIds mismatch)
+      try { const v = localStorage.getItem('axion_messages'); if (v) { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(v).filter(m => !deleted.has(m.id))); } } catch {}
       if (data.complaints && data.complaints.length > 0) setComplaints(data.complaints);
       if (data.students && data.students.length > 0) {
         try { const cached = localStorage.getItem('axion_students_cache'); if (!cached || JSON.parse(cached).length === 0) { setStudents(data.students); localStorage.setItem('axion_students_cache', JSON.stringify(data.students)); } } catch { setStudents(data.students); }
@@ -170,11 +167,9 @@ export function AppProvider({ children }) {
       if (data.fees && data.fees.length > 0) setFees(data.fees);
     } catch (e) {
       console.warn('Backend API unavailable, trying DB blobs:', e.message);
-      // Try to restore from DB blobs (persisted in MongoDB)
       const restored = await syncAllFromDB();
       if (restored > 0) console.log(`Restored ${restored} data blobs from DB`);
-      // Fall back to localStorage
-      try { const v = localStorage.getItem('axion_messages'); if (v) { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(v).filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants))); } } catch {}
+      try { const v = localStorage.getItem('axion_messages'); if (v) { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(v).filter(m => !deleted.has(m.id))); } } catch {}
       try { const v = localStorage.getItem('axion_students_cache'); if (v) setStudents(JSON.parse(v)); } catch {}
       try { const v = localStorage.getItem('axion_complaints'); if (v) setComplaints(JSON.parse(v)); } catch {}
       try { const v = localStorage.getItem('axion_fees'); if (v) setFees(JSON.parse(v)); } catch {}
@@ -561,11 +556,11 @@ export function AppProvider({ children }) {
     }
   }, [fees, showToast]);
 
-  const sendMsg = useCallback(async (text, fileData) => {
+  const sendMsg = useCallback(async (text, fileData, recipientId) => {
     if ((!text && !fileData) || !currentMsgId) return;
     setMessages(prev => prev.map(m => {
       if (m.id !== currentMsgId) return m;
-      const entry = { from: 'out', text: text || '', time: 'Now', authorEmail: user?.email, authorId: user?.id };
+      const entry = { from: 'out', text: text || '', time: 'Now', authorEmail: user?.email, authorId: user?.id, recipientId };
       if (fileData) {
         entry.fileName = fileData.name;
         entry.fileType = fileData.type;
@@ -583,9 +578,8 @@ export function AppProvider({ children }) {
       return { ...m, chat: [...(m.chat || []), entry], preview: entry.text, time: 'Now', unread: false };
     }));
     showToast('Message sent');
-    showToast('Message sent');
     try {
-      await requestJSON(`${API_BASE}/messages/${currentMsgId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from_dir: 'out', text: text || '', time: 'Now' }) });
+      await requestJSON(`${API_BASE}/messages/${currentMsgId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from_dir: 'out', text: text || '', time: 'Now', recipientId }) });
     } catch (e) {
       console.warn('Message send sync failed:', e.message);
     }
@@ -705,54 +699,61 @@ export function AppProvider({ children }) {
 
   const startChatWith = useCallback(async (recipientId, recipientName, recipientRole) => {
     closeModal();
-    const currentUserId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
+    const myPrefix = currentRole === 'admin' ? '' : currentRole + '_';
+    const currentUserId = user?.id || myPrefix + (user?.email || '').replace(/[^a-z0-9]/gi, '_');
+    const strippedRecipientId = recipientId.replace(/^(admin|teacher|parent)_/i, '');
+    const theirPrefix = recipientRole === 'ADMIN' ? '' : (recipientRole || '').toLowerCase() + '_';
+    const normalizedRecipientId = theirPrefix + strippedRecipientId;
+    // Check if a conversation with this person already exists
+    const existing = messages.find(m => {
+      if (m.participants) return m.participants.some(p => {
+        const plain = p.replace(/^(admin|teacher|parent)_/i, '');
+        return p === normalizedRecipientId || p === recipientId || plain === strippedRecipientId;
+      });
+      return m.senderId === normalizedRecipientId || m.senderId === recipientId || m.senderId === strippedRecipientId;
+    });
+    if (existing) {
+      setCurrentMsgId(existing.id);
+      showToast(`Opened chat with ${recipientName}`);
+      return;
+    }
     const newMsg = {
       id: 'msg-' + Date.now(),
-      participants: [currentUserId, recipientId],
+      participants: [currentUserId, normalizedRecipientId],
       participantNames: {
         [currentUserId]: user?.name || 'Me',
-        [recipientId]: recipientName
+        [normalizedRecipientId]: recipientName
       },
       participantRoles: {
         [currentUserId]: currentRole?.toUpperCase() || 'USER',
-        [recipientId]: recipientRole || 'Contact'
+        [normalizedRecipientId]: recipientRole || 'Contact'
       },
       participantAvis: {
         [currentUserId]: (user?.name || 'Me').substring(0, 2).toUpperCase(),
-        [recipientId]: recipientName.substring(0, 2).toUpperCase()
+        [normalizedRecipientId]: recipientName.substring(0, 2).toUpperCase()
       },
-      aColor: 'var(--sky-pale)',
-      aText: 'var(--sky)',
+      aColor: recipientRole === 'TEACHER' ? 'var(--sky-pale)' : 'var(--coral-pale)',
+      aText: recipientRole === 'TEACHER' ? 'var(--sky)' : 'var(--coral)',
       preview: 'No messages yet. Say hello!',
       time: 'Now',
       unread: false,
       chat: [],
-      senderId: recipientId, // legacy fallback
-      sender: recipientName, // legacy fallback
-      role: recipientRole || 'Contact', // legacy fallback
-      avi: recipientName.substring(0, 2).toUpperCase(), // legacy fallback
+      senderId: normalizedRecipientId,
+      sender: recipientName,
+      role: recipientRole || 'Contact',
+      avi: recipientName.substring(0, 2).toUpperCase(),
     };
     setMessages(prev => {
       const merged = [newMsg, ...prev];
-      showToast(`Chat with ${recipientName} opened`);
       setCurrentMsgId(newMsg.id);
       return merged;
     });
     try {
-      await requestJSON(`${API_BASE}/messages/new`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipientId, time: 'Now' }) });
-      const data = await requestJSON(`${API_BASE}/messages`);
-      if (data.items?.length) {
-        setMessages(prev => {
-          const serverSenderIds = new Set(data.items.map(m => m.senderId).filter(Boolean));
-          const matched = data.items.find(m => m.senderId === recipientId);
-          if (matched) setCurrentMsgId(matched.id);
-          return [...prev.filter(m => !serverSenderIds.has(m.senderId)), ...data.items];
-        });
-      }
+      await requestJSON(`${API_BASE}/messages/new`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipientId: normalizedRecipientId, time: 'Now' }) });
     } catch (e) {
       console.warn('Chat sync failed (using local):', e.message);
     }
-  }, [showToast, closeModal, setCurrentMsgId]);
+  }, [messages, showToast, closeModal, setCurrentMsgId, currentRole, user]);
 
   // Build notifications
   const buildNotifications = useCallback(() => {

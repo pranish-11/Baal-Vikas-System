@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogIn, Loader, X, Leaf } from 'lucide-react';
+import { LogIn, Loader, X, Leaf, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { register } from '../api';
 import { queueSyncToDB } from '../utils/dbSync';
@@ -17,6 +17,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
@@ -28,13 +30,13 @@ export default function Login() {
 
   const mockLogin = (profileKey, customEmail) => {
     const profiles = {
-      admin: { name: 'Admin User', email: 'admin@axion.edu' },
-      teacher: { name: 'Ms. Anika Roy', email: 'anika@axion.edu' },
-      parent: { name: 'Mrs. Lena Kim', email: 'lena@axion.edu' },
+      admin: { name: 'Admin User', email: 'admin@axionschool.edu' },
+      teacher: { name: 'Ms. Anika Roy', email: 'anika.roy@axionschool.edu' },
+      parent: { name: 'Mrs. Lena Kim', email: 'lena.kim@parent.edu' },
     };
     const p = profiles[profileKey];
     const userEmail = customEmail || p.email;
-    const userName = customEmail ? (customEmail === 'admin@axion.edu' ? 'Admin User' : customEmail === 'anika@axion.edu' ? 'Ms. Anika Roy' : 'Mrs. Lena Kim') : p.name;
+    const userName = customEmail ? (customEmail === 'admin@axionschool.edu' ? 'Admin User' : customEmail === 'anika.roy@axionschool.edu' ? 'Ms. Anika Roy' : 'Mrs. Lena Kim') : p.name;
     const u = { name: userName, email: userEmail, role: profileKey.toUpperCase() };
     const profile = { role: profileKey, user: u };
     localStorage.setItem('axion_profile', JSON.stringify(profile));
@@ -57,7 +59,7 @@ export default function Login() {
     try {
       await doLogin(email, password);
     } catch (e) {
-      const fallbacks = { 'admin@axion.edu': 'admin', 'anika@axion.edu': 'teacher', 'lena@axion.edu': 'parent' };
+      const fallbacks = { 'admin@axionschool.edu': 'admin', 'anika.roy@axionschool.edu': 'teacher', 'lena.kim@parent.edu': 'parent' };
       const match = Object.entries(fallbacks).find(([em]) => em === email);
       if (match) { mockLogin(match[1], email); return; }
       setError(e.message === 'Failed to fetch' ? 'Backend offline — use one of the saved accounts above' : e.message);
@@ -89,10 +91,6 @@ export default function Login() {
 
   const clearAllProfiles = () => {
     localStorage.removeItem('axion_saved_profiles');
-    localStorage.removeItem('axion_token');
-    localStorage.removeItem('axion_profile');
-    localStorage.removeItem('axion_last_email');
-    localStorage.removeItem('axion_last_pass');
     localStorage.removeItem('axion_seed_done');
     window.location.reload();
   };
@@ -158,15 +156,22 @@ export default function Login() {
         )}
 
         <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', marginBottom: 14, textAlign: 'center' }}>
-          {savedProfiles.length > 0 ? 'Or sign in with a different account' : 'Sign in to your account'}
+          {savedProfiles.length > 0 ? (
+            <span style={{ color: 'var(--primary)', cursor: 'pointer', borderBottom: '1.5px dashed var(--primary)' }} onClick={() => { setEmail(''); setPassword(''); }}>
+              Or sign in with a different account
+            </span>
+          ) : 'Sign in to your account'}
         </p>
         <div className="form-group">
           <label className="form-label">Email</label>
           <input className="form-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label className="form-label">Password</label>
-          <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+          <input className="form-input" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingRight: 40 }} />
+          <div onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 12, bottom: 10, cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </div>
         </div>
         {error && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', background: 'var(--coral-pale)', color: 'var(--coral)' }}>{error}</div>}
         {success && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', background: 'var(--primary-pale)', color: 'var(--primary)' }}>{success}</div>}
@@ -177,10 +182,11 @@ export default function Login() {
           Don't have an account? <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 700 }} onClick={() => { setMode('register'); setError(''); setSuccess(''); }}>Create Account</span>
         </div>
         {savedProfiles.length > 0 && (
-          <div style={{ marginTop: 10, textAlign: 'center' }}>
-            <span style={{ color: 'var(--text3)', fontSize: 12, cursor: 'pointer', fontWeight: 600 }} onClick={clearAllProfiles}>
+          <div style={{ marginTop: 12, textAlign: 'center' }}>
+            <button onClick={clearAllProfiles} style={{ background: 'transparent', border: '1.5px solid var(--coral-pale)', borderRadius: 8, padding: '6px 16px', color: 'var(--coral)', fontSize: 12, fontWeight: 700, fontFamily: "'Nunito', sans-serif", cursor: 'pointer', transition: 'all .2s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--coral-pale)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
               Clear all saved accounts
-            </span>
+            </button>
           </div>
         )}
       </div>
@@ -211,9 +217,12 @@ export default function Login() {
           <label className="form-label">Email</label>
           <input className="form-input" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label className="form-label">Password</label>
-          <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+          <input className="form-input" type={showRegPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingRight: 40 }} />
+          <div onClick={() => setShowRegPassword(!showRegPassword)} style={{ position: 'absolute', right: 12, bottom: 10, cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
+            {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </div>
         </div>
         {error && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', background: 'var(--coral-pale)', color: 'var(--coral)' }}>{error}</div>}
         {success && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 700, textAlign: 'center', background: 'var(--primary-pale)', color: 'var(--primary)' }}>{success}</div>}
