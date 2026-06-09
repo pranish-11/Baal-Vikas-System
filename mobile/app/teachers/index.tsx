@@ -49,7 +49,7 @@ export default function TeachersScreen() {
       </View>
       
       <View style={styles.searchBox}>
-        <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+        <Text style={{ fontSize: 14, marginRight: 8, color: Colors.text3 }}>⊙</Text>
         <TextInput style={styles.searchInput} placeholder="Search teachers..." placeholderTextColor={Colors.text3} value={search} onChangeText={setSearch} />
       </View>
       
@@ -67,7 +67,7 @@ export default function TeachersScreen() {
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.email}>{item.email}</Text>
             </View>
-            <Text style={{fontSize: 20, color: Colors.text3}}>💬</Text>
+            <Text style={{fontSize: 18, color: Colors.text3}}>✉</Text>
           </TouchableOpacity>
         )}
         ListEmptyComponent={<Text style={styles.empty}>No teachers found</Text>}

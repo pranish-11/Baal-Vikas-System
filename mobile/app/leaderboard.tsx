@@ -51,7 +51,7 @@ export default function LeaderboardScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🏆 Leaderboard</Text>
+        <Text style={styles.title}>★ Leaderboard</Text>
         <Text style={styles.subtitle}>Top Behavior Points</Text>
 
         <View style={styles.tabsRow}>
@@ -88,9 +88,9 @@ export default function LeaderboardScreen() {
                 let color = Colors.text;
                 let bg = Colors.surface;
                 
-                if (index === 0) { badge = "🥇"; color = "#FFD700"; bg = "#FFF9C4"; }
-                else if (index === 1) { badge = "🥈"; color = "#C0C0C0"; bg = "#F5F5F5"; }
-                else if (index === 2) { badge = "🥉"; color = "#CD7F32"; bg = "#FBE9E7"; }
+                if (index === 0) { badge = "1st"; color = "#B8860B"; bg = "#FFF9C4"; }
+                else if (index === 1) { badge = "2nd"; color = "#757575"; bg = "#F5F5F5"; }
+                else if (index === 2) { badge = "3rd"; color = "#A0522D"; bg = "#FBE9E7"; }
                 else { badge = `#${index + 1}`; }
 
                 return (

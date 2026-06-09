@@ -95,7 +95,7 @@ export default function ChatScreen() {
         }}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            <Text style={styles.emptyEmoji}>✉</Text>
             <Text style={styles.emptyText}>Send a message to start the conversation</Text>
           </View>
         }

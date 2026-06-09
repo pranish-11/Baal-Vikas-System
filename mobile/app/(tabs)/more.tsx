@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
-import { getNotices, getNotifications, markAllNotificationsRead, checkHealth, API_BASE_URL } from "../../lib/api";
+import { getNotices, getNotifications, markAllNotificationsRead, checkHealth, api } from "../../lib/api";
 import { useSocketEvent } from "../../lib/socket";
 import { Colors, Radius, Shadow } from "../../lib/theme";
+import { LinkIcon } from "../../lib/icons";
 
 export default function MoreScreen() {
   const { user, logout } = useAuth();
@@ -55,40 +56,19 @@ export default function MoreScreen() {
 
         {/* Quick Links */}
         <View style={styles.linksRow}>
-          <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/contacts")}>
-            <Text style={styles.linkEmoji}>👥</Text>
-            <Text style={styles.linkLabel}>People</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/conversations")}>
-            <Text style={styles.linkEmoji}>💬</Text>
-            <Text style={styles.linkLabel}>Messages</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/complaints")}>
-            <Text style={styles.linkEmoji}>📮</Text>
-            <Text style={styles.linkLabel}>Complaints</Text>
-          </TouchableOpacity>
+          <LinkIcon name="people" label="People" onPress={() => router.push("/contacts")} />
+          <LinkIcon name="message" label="Messages" onPress={() => router.push("/conversations")} />
+          <LinkIcon name="complaint" label="Complaints" onPress={() => router.push("/complaints")} />
           {user?.role === "ADMIN" && (
             <>
-              <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/classrooms")}>
-                <Text style={styles.linkEmoji}>🏫</Text>
-                <Text style={styles.linkLabel}>Classrooms</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/teachers")}>
-                <Text style={styles.linkEmoji}>👩‍🏫</Text>
-                <Text style={styles.linkLabel}>Teachers</Text>
-              </TouchableOpacity>
+              <LinkIcon name="classroom" label="Classrooms" onPress={() => router.push("/classrooms")} />
+              <LinkIcon name="teacher" label="Teachers" onPress={() => router.push("/teachers")} />
             </>
           )}
           {user?.role === "PARENT" && (
-            <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/ai-chat")}>
-              <Text style={styles.linkEmoji}>🤖</Text>
-              <Text style={styles.linkLabel}>AI Chat</Text>
-            </TouchableOpacity>
+            <LinkIcon name="ai" label="AI Chat" onPress={() => router.push("/ai-chat")} />
           )}
-          <TouchableOpacity style={styles.linkCard} onPress={() => router.push("/leaderboard")}>
-            <Text style={styles.linkEmoji}>🏆</Text>
-            <Text style={styles.linkLabel}>Leaderboard</Text>
-          </TouchableOpacity>
+          <LinkIcon name="trophy" label="Leaderboard" onPress={() => router.push("/leaderboard")} />
         </View>
 
         {/* Server Status */}
@@ -98,7 +78,7 @@ export default function MoreScreen() {
             <View style={[styles.dot, { backgroundColor: online ? "#4CAF50" : Colors.coral }]} />
             <Text style={styles.serverText}>{online ? "Connected" : "Unreachable"}</Text>
           </View>
-          <Text style={styles.serverUrl}>{API_BASE_URL}</Text>
+          <Text style={styles.serverUrl}>{api.defaults.baseURL}</Text>
         </View>
 
         {/* Notifications */}
@@ -159,9 +139,6 @@ const styles = StyleSheet.create({
   roleBadge: { backgroundColor: Colors.primaryPale, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, alignSelf: "flex-start", marginTop: 4 },
   roleText: { fontSize: 10, fontWeight: "700", color: Colors.primary },
   linksRow: { flexDirection: "row", gap: 10, flexWrap: "wrap", marginBottom: 12 },
-  linkCard: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: 14, alignItems: "center", minWidth: 72, ...Shadow },
-  linkEmoji: { fontSize: 22 },
-  linkLabel: { fontSize: 10, fontWeight: "600", color: Colors.text2, marginTop: 4 },
   serverRow: { flexDirection: "row", alignItems: "center" },
   dot: { width: 8, height: 8, borderRadius: 4, marginRight: 8 },
   serverText: { fontSize: 14, fontWeight: "600", color: Colors.text },

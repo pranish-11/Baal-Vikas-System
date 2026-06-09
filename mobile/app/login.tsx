@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useAuth } from "../lib/auth";
-import { checkHealth, API_BASE_URL } from "../lib/api";
+import { checkHealth } from "../lib/api";
 import { Colors, Radius, Shadow } from "../lib/theme";
 
 export default function LoginScreen() {
@@ -168,10 +168,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Server info (subtle) */}
-        <Text style={styles.serverInfo}>
-          API: {API_BASE_URL}
-        </Text>
       </Animated.View>
     </KeyboardAvoidingView>
   );

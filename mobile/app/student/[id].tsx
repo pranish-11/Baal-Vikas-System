@@ -103,19 +103,19 @@ export default function StudentDetailScreen() {
             <Text style={styles.sectionTitle}>Teacher Actions</Text>
             <View style={styles.teacherActions}>
               <TouchableOpacity style={styles.rewardBtn} onPress={() => handlePoints(5)}>
-                <Text style={styles.rewardText}>🌟 +5 Points</Text>
+                <Text style={styles.rewardText}>★ +5 Points</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.rewardBtn} onPress={() => handlePoints(1)}>
-                <Text style={styles.rewardText}>⭐ +1 Point</Text>
+                <Text style={styles.rewardText}>☆ +1 Point</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.rewardBtn, { backgroundColor: Colors.coralPale }]} onPress={() => handlePoints(-1)}>
                 <Text style={[styles.rewardText, { color: Colors.coral }]}>−1 Point</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.obsBtn} onPress={() => setShowObs(true)}>
-                <Text style={styles.obsBtnText}>📝 Add Observation</Text>
+                <Text style={styles.obsBtnText}>✎ Add Observation</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.obsBtn, { backgroundColor: Colors.skyPale }]} onPress={openClassModal}>
-                <Text style={[styles.obsBtnText, { color: Colors.sky }]}>🏫 Reassign</Text>
+                <Text style={[styles.obsBtnText, { color: Colors.sky }]}>⇄ Reassign</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -177,7 +177,7 @@ export default function StudentDetailScreen() {
                   <Text style={styles.feeDue}>Due: {new Date(f.dueDate).toLocaleDateString()}</Text>
                 </View>
                 <View>
-                  <Text style={styles.feeAmount}>₹{f.amount.toLocaleString()}</Text>
+                  <Text style={styles.feeAmount}>Rs. {f.amount.toLocaleString()}</Text>
                   <View style={[styles.feeBadge, { backgroundColor: f.status === "PAID" ? "#E8F5E9" : "#FDE8E4" }]}>
                     <Text style={[styles.feeStatus, { color: f.status === "PAID" ? "#4CAF50" : Colors.coral }]}>{f.status}</Text>
                   </View>
@@ -190,7 +190,7 @@ export default function StudentDetailScreen() {
         {/* Message button */}
         <TouchableOpacity style={styles.msgBtn} onPress={() => router.push(`/chat/${isStaff ? student.parentId || "" : student.teacherId || ""}`)}
           disabled={!(isStaff ? true : true)}>
-          <Text style={styles.msgBtnText}>💬 {isStaff ? "Message Parent" : "Message Teacher"}</Text>
+          <Text style={styles.msgBtnText}>✉ {isStaff ? "Message Parent" : "Message Teacher"}</Text>
         </TouchableOpacity>
       </ScrollView>
 

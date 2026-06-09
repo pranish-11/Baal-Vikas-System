@@ -1,17 +1,74 @@
 import Constants from "expo-constants";
 import axios, { AxiosError } from "axios";
 
-const resolveApiUrl = (): string => {
-  // EXPO_PUBLIC_API_URL is set automatically via mobile/.env 
-  // (written by backend's start-with-tunnel.js)
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (envUrl) return envUrl.replace(/\/$/, "");
-  
-  // Fallback to local network (only works if firewall allows it)
-  return "http://192.168.2.108:8011";
+// Get the Metro server URL at runtime based on the bundle's origin.
+export const getMetroServerUrl = (): string | null => {
+  const expUrl = Constants.experienceUrl;
+  if (expUrl) {
+    try {
+      const cleaned = expUrl.trim();
+      if (cleaned.startsWith("exps://")) {
+        return "https://" + cleaned.substring(7).split("/")[0].split("?")[0];
+      } else if (cleaned.startsWith("exp://")) {
+        return "http://" + cleaned.substring(6).split("/")[0].split("?")[0];
+      } else if (cleaned.startsWith("http://") || cleaned.startsWith("https://")) {
+        const parts = cleaned.split("/");
+        return parts[0] + "//" + parts[2];
+      }
+    } catch (e) {
+      console.warn("[API] Error parsing experienceUrl:", e);
+    }
+  }
+
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const protocol = hostUri.includes("trycloudflare.com") || hostUri.includes("ngrok") ? "https:" : "http:";
+    return `${protocol}//${hostUri.split("/")[0].split("?")[0]}`;
+  }
+
+  return null;
 };
 
-export const API_BASE_URL = resolveApiUrl();
+let cachedApiUrl: string | null = null;
+
+export const getApiBaseUrl = async (): Promise<string> => {
+  if (cachedApiUrl) return cachedApiUrl;
+
+  // 1. In development, try to fetch the live URL from the Metro dev server
+  const metroUrl = getMetroServerUrl();
+  if (metroUrl) {
+    try {
+      const response = await axios.get<{ apiUrl?: string }>(`${metroUrl}/api-url`, { timeout: 2000 });
+      const url = response.data?.apiUrl;
+      if (url) {
+        console.log("[API] Resolved live API URL from Metro server:", url);
+        cachedApiUrl = url;
+        return url;
+      }
+    } catch (e) {
+      console.log("[API] Could not fetch live API URL from Metro server, using fallback:", e);
+    }
+  }
+
+  // 2. Fallback to the environment variable (build-time env)
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    const val = envUrl.replace(/\/$/, "");
+    cachedApiUrl = val;
+    return val;
+  }
+
+  // 3. Last resort fallback
+  const fallback = "http://192.168.2.108:8011";
+  cachedApiUrl = fallback;
+  return fallback;
+};
+
+// We initialize API_BASE_URL synchronously for fallback/default use, 
+// but it will be updated dynamically on any request by the interceptor.
+export let API_BASE_URL = process.env.EXPO_PUBLIC_API_URL 
+  ? process.env.EXPO_PUBLIC_API_URL.replace(/\/$/, "") 
+  : "http://192.168.2.108:8011";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -20,6 +77,18 @@ export const api = axios.create({
     "Content-Type": "application/json",
     "Bypass-Tunnel-Reminder": "true" 
   },
+});
+
+// Dynamic baseURL resolution interceptor
+api.interceptors.request.use(async (config) => {
+  try {
+    const resolvedUrl = await getApiBaseUrl();
+    config.baseURL = resolvedUrl;
+    API_BASE_URL = resolvedUrl; // sync global let
+  } catch (err) {
+    console.error("[API] Error resolving dynamic base URL:", err);
+  }
+  return config;
 });
 
 export function setAuthToken(token: string | null): void {
@@ -35,8 +104,10 @@ api.interceptors.response.use(
   (error: AxiosError<{ error?: string; message?: string }>) => {
     if (error.code === "ECONNABORTED")
       return Promise.reject(new Error("Request timed out — check your connection"));
-    if (!error.response)
-      return Promise.reject(new Error(`Cannot connect to server at ${API_BASE_URL}`));
+    if (!error.response) {
+      const urlFailed = error.config?.baseURL || API_BASE_URL;
+      return Promise.reject(new Error(`Cannot connect to server at ${urlFailed}`));
+    }
     const msg = error.response.data?.error || error.response.data?.message || error.message;
     return Promise.reject(new Error(msg));
   }

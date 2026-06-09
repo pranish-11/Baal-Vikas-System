@@ -56,6 +56,12 @@ async function getById(req, res, next) {
     const absent = student.attendance.filter((a) => a.status === "ABSENT").length;
     const late = student.attendance.filter((a) => a.status === "LATE").length;
 
+    // Fetch teacher from classroom for messaging
+    const classroom = await prisma.classroom.findUnique({
+      where: { id: student.classroomId },
+      select: { teacherId: true },
+    });
+
     return res.json({
       id: student.id,
       firstName: student.firstName,
@@ -67,6 +73,8 @@ async function getById(req, res, next) {
       medicalNotes: student.medicalNotes,
       behaviorPoints: student.behaviorPoints,
       profilePhoto: student.profilePhoto,
+      parentId: student.parentId,
+      teacherId: classroom?.teacherId || null,
       attendance: {
         total: totalAttendance,
         present,

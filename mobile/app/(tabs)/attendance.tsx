@@ -5,7 +5,7 @@ import { getTodayAttendance, markAttendance, getDashboard, getAttendance, getCla
 import { Colors, Radius, Shadow } from "../../lib/theme";
 
 const STATUS_OPTIONS = ["PRESENT", "ABSENT", "LATE", "LEAVE"];
-const STATUS_EMOJI: Record<string, string> = { PRESENT: "✅", ABSENT: "❌", LATE: "⏰", LEAVE: "📝" };
+const STATUS_EMOJI: Record<string, string> = { PRESENT: "✓", ABSENT: "✕", LATE: "◔", LEAVE: "▤" };
 const STATUS_COLOR: Record<string, string> = { PRESENT: "#4CAF50", ABSENT: Colors.coral, LATE: Colors.gold, LEAVE: Colors.lavender };
 
 export default function AttendanceScreen() {
@@ -130,7 +130,7 @@ function AdminView() {
         <Text style={styles.sectionTitle}>Classrooms — Tap to Mark</Text>
         {classrooms.map((c: any) => (
           <TouchableOpacity key={c.id} style={styles.classCard} onPress={() => loadClassroom(c.id)} activeOpacity={0.7}>
-            <View style={styles.classAvatar}><Text style={styles.classEmoji}>🏫</Text></View>
+            <View style={styles.classAvatar}><Text style={styles.classEmoji}>⊞</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={styles.className}>{c.name}</Text>
               <Text style={styles.classMeta}>{c.teacher || "No teacher"} • {c.studentCount || 0} students</Text>

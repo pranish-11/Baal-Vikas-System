@@ -23,7 +23,7 @@ export default function AIChatScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([
-    { id: "welcome", role: "ai", content: `Hello ${user?.name?.split(" ")[0] || "there"}! 👋\n\nI'm Axion, your school assistant. Ask me anything about your children — attendance, fees, activities, eating habits, or how they're doing in class.\n\nWhat would you like to know?` },
+    { id: "welcome", role: "ai", content: `Hello ${user?.name?.split(" ")[0] || "there"}!\n\nI'm Axion, your school assistant. Ask me anything about your children — attendance, fees, activities, eating habits, or how they're doing in class.\n\nWhat would you like to know?` },
   ]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -73,7 +73,7 @@ export default function AIChatScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <View style={styles.aiAvatar}>
-            <Text style={styles.aiEmoji}>🤖</Text>
+            <Text style={styles.aiEmoji}>◎</Text>
           </View>
           <View>
             <Text style={styles.headerTitle}>Axion Assistant</Text>
@@ -92,7 +92,7 @@ export default function AIChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
         renderItem={({ item }) => (
           <View style={[styles.bubble, item.role === "user" ? styles.bubbleUser : styles.bubbleAi]}>
-            {item.role === "ai" && <Text style={styles.aiLabel}>🤖 Axion</Text>}
+            {item.role === "ai" && <Text style={styles.aiLabel}>◎ Axion</Text>}
             <Text style={[styles.bubbleText, item.role === "user" ? styles.textUser : styles.textAi]}>{item.content}</Text>
           </View>
         )}

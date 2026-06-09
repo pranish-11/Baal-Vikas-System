@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { getStudents } from "../../lib/api";
 import { Colors, Radius, Shadow } from "../../lib/theme";
+import { Icon } from "../../lib/icons";
 
 export default function StudentsScreen() {
   const router = useRouter();
@@ -39,11 +40,11 @@ export default function StudentsScreen() {
           <Text style={styles.count}>{students.length} total</Text>
         </View>
         <TouchableOpacity style={styles.leaderboardBtn} onPress={() => router.push("/leaderboard")}>
-          <Text style={styles.leaderboardBtnText}>🏆 Leaderboard</Text>
+          <Text style={styles.leaderboardBtnText}>★ Leaderboard</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.searchBox}>
-        <Text style={styles.searchIcon}>🔍</Text>
+        <Icon name="search" size={24} bare />
         <TextInput style={styles.searchInput} placeholder="Search students..." placeholderTextColor={Colors.text3}
           value={search} onChangeText={setSearch} />
       </View>
@@ -83,10 +84,9 @@ const styles = StyleSheet.create({
   header: { paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12, flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end" },
   title: { fontSize: 24, fontWeight: "800", color: Colors.text },
   count: { fontSize: 13, color: Colors.text3, fontWeight: "600" },
-  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface, marginHorizontal: 16, borderRadius: Radius.md, paddingHorizontal: 14, marginBottom: 8, ...Shadow },
+  searchBox: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface, marginHorizontal: 16, borderRadius: Radius.md, paddingHorizontal: 14, marginBottom: 8, gap: 8, ...Shadow },
   leaderboardBtn: { backgroundColor: Colors.goldPale, paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.full, borderWidth: 1, borderColor: Colors.gold },
   leaderboardBtnText: { color: Colors.gold, fontWeight: "700", fontSize: 13 },
-  searchIcon: { fontSize: 16, marginRight: 8 },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: Colors.text },
   list: { padding: 16, paddingTop: 4 },
   card: { flexDirection: "row", alignItems: "center", backgroundColor: Colors.surface, borderRadius: Radius.md, padding: 14, marginBottom: 10, ...Shadow },

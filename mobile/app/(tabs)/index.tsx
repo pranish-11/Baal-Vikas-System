@@ -6,6 +6,7 @@ import { useAuth } from "../../lib/auth";
 import { getDashboard, checkHealth } from "../../lib/api";
 import { useSocketEvent } from "../../lib/socket";
 import { Colors, Radius, Shadow } from "../../lib/theme";
+import { ActionIcon } from "../../lib/icons";
 
 export default function DashboardScreen() {
   const { user } = useAuth();
@@ -102,8 +103,8 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             ))}
             <View style={styles.statsRow}>
-              <StatCard label="Total Fees" value={`₹${data.totalFees}`} color={Colors.sky} bg={Colors.skyPale} />
-              <StatCard label="Outstanding" value={`₹${data.outstandingFees}`} color={Colors.coral} bg={Colors.coralPale} />
+              <StatCard label="Total Fees" value={`Rs. ${data.totalFees}`} color={Colors.sky} bg={Colors.skyPale} />
+              <StatCard label="Outstanding" value={`Rs. ${data.outstandingFees}`} color={Colors.coral} bg={Colors.coralPale} />
             </View>
           </>
         )}
@@ -112,15 +113,15 @@ export default function DashboardScreen() {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionsRow}>
           {(user?.role === "TEACHER" || user?.role === "ADMIN") && (
-            <ActionBtn label="Attendance" emoji="📋" onPress={() => router.push("/(tabs)/attendance")} />
+            <ActionIcon name="attendance" label="Attendance" onPress={() => router.push("/(tabs)/attendance")} />
           )}
-          <ActionBtn label="People" emoji="👥" onPress={() => router.push("/contacts")} />
-          <ActionBtn label="Messages" emoji="💬" onPress={() => router.push("/conversations")} />
-          <ActionBtn label="Complaints" emoji="📮" onPress={() => router.push("/complaints")} />
+          <ActionIcon name="people" label="People" onPress={() => router.push("/contacts")} />
+          <ActionIcon name="message" label="Messages" onPress={() => router.push("/conversations")} />
+          <ActionIcon name="complaint" label="Complaints" onPress={() => router.push("/complaints")} />
           {user?.role === "PARENT" && (
-            <ActionBtn label="Ask AI" emoji="🤖" onPress={() => router.push("/ai-chat")} />
+            <ActionIcon name="ai" label="Ask AI" onPress={() => router.push("/ai-chat")} />
           )}
-          <ActionBtn label="Fees" emoji="💰" onPress={() => router.push("/(tabs)/fees")} />
+          <ActionIcon name="fees" label="Fees" onPress={() => router.push("/(tabs)/fees")} />
         </View>
       </ScrollView>
     </View>
@@ -136,14 +137,7 @@ function StatCard({ label, value, color, bg }: any) {
   );
 }
 
-function ActionBtn({ label, emoji, onPress }: any) {
-  return (
-    <TouchableOpacity style={styles.actionBtn} onPress={onPress} activeOpacity={0.7}>
-      <Text style={{ fontSize: 24 }}>{emoji}</Text>
-      <Text style={styles.actionLabel}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
+// ActionBtn removed — replaced by ActionIcon from lib/icons
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.bg },
@@ -174,6 +168,4 @@ const styles = StyleSheet.create({
   pointsBadge: { backgroundColor: Colors.goldPale, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
   pointsText: { fontSize: 11, fontWeight: "700", color: Colors.gold },
   actionsRow: { flexDirection: "row", gap: 12, flexWrap: "wrap" },
-  actionBtn: { backgroundColor: Colors.surface, borderRadius: Radius.md, padding: 16, alignItems: "center", minWidth: 76, ...Shadow },
-  actionLabel: { fontSize: 11, fontWeight: "600", color: Colors.text2, marginTop: 6 },
 });

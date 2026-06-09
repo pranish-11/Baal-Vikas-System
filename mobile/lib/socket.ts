@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
-import { API_BASE_URL } from "./api";
+import { getApiBaseUrl } from "./api";
 import { getToken } from "./storage";
 
 let socketInstance: Socket | null = null;
@@ -11,7 +11,8 @@ export async function connectSocket(): Promise<Socket | null> {
 
   if (socketInstance?.connected) return socketInstance;
 
-  socketInstance = io(API_BASE_URL, {
+  const baseUrl = await getApiBaseUrl();
+  socketInstance = io(baseUrl, {
     auth: { token },
     transports: ["websocket", "polling"],
     reconnection: true,

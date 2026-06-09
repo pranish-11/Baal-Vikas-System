@@ -7,7 +7,7 @@ import { useSocketEvent } from "../lib/socket";
 import { Colors, Radius, Shadow } from "../lib/theme";
 
 const STATUS_COLOR: Record<string, string> = { OPEN: Colors.coral, UNDER_REVIEW: Colors.gold, RESOLVED: "#4CAF50" };
-const STATUS_EMOJI: Record<string, string> = { OPEN: "🔴", UNDER_REVIEW: "🔍", RESOLVED: "✅" };
+const STATUS_EMOJI: Record<string, string> = { OPEN: "●", UNDER_REVIEW: "◎", RESOLVED: "✓" };
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 
 export default function ComplaintsScreen() {

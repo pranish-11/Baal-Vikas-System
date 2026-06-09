@@ -36,7 +36,7 @@ export default function ContactsScreen() {
         <Text style={styles.subtitle}>Tap to start a conversation</Text>
       </View>
       <View style={styles.searchBox}>
-        <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
+        <Text style={{ fontSize: 14, marginRight: 8, color: Colors.text3 }}>⊙</Text>
         <TextInput style={styles.searchInput} placeholder="Search people..." placeholderTextColor={Colors.text3} value={search} onChangeText={setSearch} />
       </View>
       <FlatList

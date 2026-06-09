@@ -59,7 +59,7 @@ export default function ConversationsScreen() {
         )}
         ListEmptyComponent={
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            <Text style={styles.emptyEmoji}>✉</Text>
             <Text style={styles.emptyTitle}>No conversations yet</Text>
             <Text style={styles.emptyText}>Start a conversation from a student's profile</Text>
           </View>

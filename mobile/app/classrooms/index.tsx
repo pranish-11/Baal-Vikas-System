@@ -34,7 +34,7 @@ export default function ClassroomsScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.card} onPress={() => router.push(`/classrooms/${item.id}`)} activeOpacity={0.7}>
             <View style={styles.iconBox}>
-              <Text style={styles.icon}>🏫</Text>
+              <Text style={styles.icon}>⊞</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{item.name}</Text>
