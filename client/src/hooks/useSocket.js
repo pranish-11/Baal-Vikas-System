@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = 'http://127.0.0.1:8011';
+import { SOCKET_URL } from '../config';
 
 export default function useSocket({ userId, onNewMessage }) {
   const socketRef = useRef(null);

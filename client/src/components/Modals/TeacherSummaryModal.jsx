@@ -1,14 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../contexts/AppContext';
-
-const SUMMARY_KEY = 'axion_teacher_summaries';
-
-function getSummaries() {
-  try { return JSON.parse(localStorage.getItem(SUMMARY_KEY)) || {}; } catch { return {}; }
-}
-function saveSummaries(data) {
-  try { localStorage.setItem(SUMMARY_KEY, JSON.stringify(data)); } catch {}
-}
 
 export default function TeacherSummaryModal({ open, onClose }) {
   const { students, currentRole, user, getTeacherClassrooms } = useApp();
@@ -18,6 +9,7 @@ export default function TeacherSummaryModal({ open, onClose }) {
   const [observations, setObservations] = useState('');
   const [mood, setMood] = useState('good');
   const [generated, setGenerated] = useState('');
+  const allSummariesRef = useRef({});
 
   const classStudents = currentRole === 'teacher'
     ? (() => {
@@ -51,14 +43,12 @@ export default function TeacherSummaryModal({ open, onClose }) {
 
   const saveSummary = () => {
     if (!selStudent || !generated) return;
-    const all = getSummaries();
-    if (!all[selStudent]) all[selStudent] = [];
-    all[selStudent].unshift({ date: date || 'Unknown', summary: generated, timestamp: Date.now() });
-    saveSummaries(all);
+    if (!allSummariesRef.current[selStudent]) allSummariesRef.current[selStudent] = [];
+    allSummariesRef.current[selStudent].unshift({ date: date || 'Unknown', summary: generated, timestamp: Date.now() });
     onClose();
   };
 
-  const allSummaries = getSummaries();
+  const allSummaries = allSummariesRef.current;
 
   if (!open) return null;
 

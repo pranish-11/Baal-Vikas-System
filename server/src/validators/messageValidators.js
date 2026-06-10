@@ -1,9 +1,9 @@
 const { z } = require("zod");
 
 const postChatSchema = z.object({
-  from_dir: z.enum(["in", "out"]),
+  from_dir: z.enum(["in", "out"]).optional().default("out"),
   text: z.string().trim().min(1, "text is required"),
-  time: z.string().trim().min(1, "time is required"),
+  time: z.string().trim().optional().default("Now"),
 });
 
 const messageParamSchema = z.object({

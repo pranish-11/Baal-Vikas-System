@@ -1,7 +1,7 @@
 const express = require("express");
-const { listStudents, createNewStudent, awardPointsToStudent, updateStudentParent, editStudent, deleteStudent } = require("../controllers/studentController");
+const { listStudents, createNewStudent, awardPointsToStudent, updateStudentParent, editStudent, deleteStudent, updateBehaviourScoreOfStudent } = require("../controllers/studentController");
 const { validate } = require("../middleware/validate");
-const { studentParamSchema, createStudentSchema, awardPointsSchema } = require("../validators/studentValidators");
+const { studentParamSchema, createStudentSchema, awardPointsSchema, behaviourSchema } = require("../validators/studentValidators");
 
 const router = express.Router();
 
@@ -11,5 +11,6 @@ router.post("/:id/award", validate(studentParamSchema, "params"), validate(award
 router.patch("/:id/parent", validate(studentParamSchema, "params"), updateStudentParent);
 router.put("/:id", validate(studentParamSchema, "params"), editStudent);
 router.delete("/:id", validate(studentParamSchema, "params"), deleteStudent);
+router.patch("/:id/behaviour", validate(studentParamSchema, "params"), validate(behaviourSchema, "body"), updateBehaviourScoreOfStudent);
 
 module.exports = router;

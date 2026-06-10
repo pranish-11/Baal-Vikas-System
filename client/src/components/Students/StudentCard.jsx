@@ -1,4 +1,5 @@
 import { Award, Star } from 'lucide-react';
+import { useApp } from '../../contexts/AppContext';
 
 function useStudentAvatar(studentId) {
   try { return JSON.parse(localStorage.getItem('axion_student_avatars'))?.[studentId] || null; } catch { return null; }
@@ -6,6 +7,8 @@ function useStudentAvatar(studentId) {
 
 export default function StudentCard({ student, attendanceStatus }) {
   const { name, init, class: sClass, age, pts, pct, rank, bg, col, id } = student;
+  const { teacherTags } = useApp();
+  const tags = teacherTags?.[id] || [];
   const avatarSrc = useStudentAvatar(id);
   const rankColors = ['#f4a91f', '#8A9BAA', '#C07B45'];
   const rankBg = rank <= 3 ? rankColors[rank - 1] : 'rgba(0,0,0,0.08)';
@@ -42,9 +45,19 @@ export default function StudentCard({ student, attendanceStatus }) {
         <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.45)', fontWeight: 600, marginTop: 1 }}>{sClass} · Age {age}</div>
       </div>
       <div style={{ padding: '0 14px 14px' }}>
-        <div style={{ width: '100%', marginBottom: 8 }}>
-          <div className="stu-bar-wrap"><div className="stu-bar" style={{ width: `${pct}%`, background: barColor }} /></div>
-          <div className="stu-bar-label"><span style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>Behavior</span><span style={{ fontSize: 10, fontWeight: 800, color: barColor }}>{pct}%</span></div>
+        <div style={{ width: '100%', marginBottom: 4 }}>
+          <div className="stu-bar-wrap"><div className="stu-bar" style={{ width: `${20 + (pct / 100) * 80}%`, background: barColor }} /></div>
+          <div className="stu-bar-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 10, color: 'rgba(0,0,0,0.4)', fontWeight: 700 }}>Behavior</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              {tags.length > 0 && tags.slice(0, 2).map(t => (
+                <span key={t} style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: '#f0f0ff', color: '#6366f1', lineHeight: '16px', display: 'inline-block', maxWidth: 56, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t}
+                </span>
+              ))}
+              <span style={{ fontSize: 10, fontWeight: 800, color: barColor }}>{pct}%</span>
+            </span>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 800, color: '#8a6000' }}>

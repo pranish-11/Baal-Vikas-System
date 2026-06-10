@@ -1,7 +1,9 @@
 const { Server } = require("socket.io");
 
+let io = null;
+
 function setupSocket(server) {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: { origin: "*", methods: ["GET", "POST"] },
   });
 
@@ -16,15 +18,18 @@ function setupSocket(server) {
       }
     });
 
-    // Broadcast new message to recipient in real-time
+    // Broadcast new message to all participants in real-time
     socket.on("send_message", (data) => {
-      const { recipientId, threadId, message } = data;
-      if (recipientId) {
-        io.to(recipientId).emit("new_message", {
-          threadId,
-          message,
-          from: socket.userId || null,
-        });
+      const { recipientIds, threadId, message, senderId } = data;
+      const ids = Array.isArray(recipientIds) ? recipientIds : [recipientIds];
+      for (const id of ids) {
+        if (id !== senderId) {
+          io.to(id).emit("new_message", {
+            threadId,
+            message,
+            from: socket.userId || null,
+          });
+        }
       }
     });
 
@@ -45,4 +50,8 @@ function setupSocket(server) {
   return io;
 }
 
-module.exports = { setupSocket };
+function getIO() {
+  return io;
+}
+
+module.exports = { setupSocket, getIO };
