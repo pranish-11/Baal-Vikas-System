@@ -4,6 +4,7 @@ const {
   saveAttendance,
   getMonthlyReport,
 } = require("../services/attendanceService");
+const { getIO } = require("../socket");
 
 async function listByDate(req, res, next) {
   try {
@@ -30,6 +31,15 @@ async function markAttendance(req, res, next) {
   try {
     const result = await saveAttendance(req.body, req.user);
     res.json(result);
+
+    try {
+      const io = getIO();
+      if (io) {
+        io.emit("attendance_updated", { date: req.body.date });
+      }
+    } catch (e) {
+      console.warn("Socket emit failed:", e.message);
+    }
   } catch (err) {
     next(err);
   }

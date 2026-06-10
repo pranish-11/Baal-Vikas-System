@@ -1,8 +1,8 @@
 import { useApp } from '../../contexts/AppContext';
-import { Calendar, DollarSign } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 export default function ActivityFeed({ onNavigate }) {
-  const { currentRole, students, attendanceData, fees, user, getTeacherClassrooms } = useApp();
+  const { currentRole, students, attendanceData, user, getTeacherClassrooms } = useApp();
 
   // Filter students by teacher's assigned classrooms
   let visibleStudents = students;
@@ -78,7 +78,6 @@ export default function ActivityFeed({ onNavigate }) {
         {classList.length === 0 ? (
           <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 13, fontWeight: 600 }}>No classrooms set up yet.</div>
         ) : classList.map(cls => {
-          const absentFees = fees.filter(f => f.status === 'overdue' && cls.students.some(s => s.name === f.studentName)).length;
           return (
             <div key={cls.name} style={{ marginBottom: 12, padding: 12, borderRadius: 10, background: 'var(--surface2)', cursor: 'pointer' }} onClick={() => onNavigate('students')}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -90,7 +89,6 @@ export default function ActivityFeed({ onNavigate }) {
                 {cls.absent > 0 && <span className="badge badge-escalated">✕ {cls.absent} absent</span>}
                 {cls.leave > 0 && <span className="badge badge-pending"><Calendar size={11} style={{ marginRight: 2 }} /> {cls.leave} on leave</span>}
                 {cls.unmarked > 0 && <span className="badge badge-general" style={{ background: 'var(--surface)', color: 'var(--text3)' }}>{cls.unmarked} not marked</span>}
-                {absentFees > 0 && <span className="badge badge-escalated"><DollarSign size={11} style={{ marginRight: 2 }} /> {absentFees} overdue</span>}
               </div>
             </div>
           );

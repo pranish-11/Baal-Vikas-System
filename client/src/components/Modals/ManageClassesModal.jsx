@@ -75,6 +75,15 @@ export default function ManageClassesModal({ open, onClose }) {
                     <X size={14} />
                   </button>
                 )}
+                {data.count > 0 && (
+                  <button onClick={() => {
+                    if (confirm(`Remove class "${cls}"? ${data.count} student(s) will be unassigned.`)) {
+                      removeClass(cls);
+                    }
+                  }} style={{ background: 'none', border: 'none', color: 'var(--coral)', cursor: 'pointer', padding: 4, opacity: 0.6 }} title="Remove class">
+                    <X size={14} />
+                  </button>
+                )}
               </div>
             );
           })}

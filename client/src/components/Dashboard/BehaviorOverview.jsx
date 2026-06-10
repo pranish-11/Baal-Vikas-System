@@ -1,7 +1,8 @@
 import { useApp } from '../../contexts/AppContext';
 
-export default function BehaviorOverview({ onNavigate }) {
-  const { students } = useApp();
+export default function BehaviorOverview({ onNavigate, studentsList }) {
+  const { students: allStudents } = useApp();
+  const students = studentsList || allStudents;
 
   if (!students.length) {
     return (
@@ -42,7 +43,7 @@ export default function BehaviorOverview({ onNavigate }) {
               <span style={{ color: b.color }}>{b.count} student{b.count !== 1 ? 's' : ''}</span>
             </div>
             <div className="stu-bar-wrap" style={{ height: 8 }}>
-              <div className="stu-bar" style={{ width: `${b.pct || 0}%`, background: b.color }} />
+              <div className="stu-bar" style={{ width: `${b.pct || 0}%`, background: b.color, minWidth: b.pct > 0 ? '32px' : 0 }} />
             </div>
           </div>
         ))}

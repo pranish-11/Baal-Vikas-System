@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8011/api';
+import { API_BASE } from '../config';
 
 export async function requestJSON(url, options = {}) {
   const token = localStorage.getItem('axion_token');
@@ -22,25 +22,31 @@ async function safeFetch(url) {
   }
 }
 
+async function safeFetchRaw(url) {
+  try {
+    return await requestJSON(url);
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchAllData() {
   const results = await Promise.allSettled([
     safeFetch(`${API_BASE}/messages`),
     safeFetch(`${API_BASE}/complaints`),
     safeFetch(`${API_BASE}/students`),
-    safeFetch(`${API_BASE}/schools`),
     safeFetch(`${API_BASE}/activities`),
-    safeFetch(`${API_BASE}/fees`),
+    safeFetchRaw(`${API_BASE}/attendance?date=${new Date().toISOString().slice(0, 10)}`),
   ]);
-  const [msgs, comps, studs, schs, acts, fees] = results.map(r => r.value);
+  const [msgs, comps, studs, acts, att] = results.map(r => r.value);
   const allNull = results.every(r => r.value === null);
   if (allNull) throw new Error('Backend unreachable or auth failed');
   return {
     messages: msgs,
     complaints: comps,
     students: studs,
-    schools: schs,
     activities: acts,
-    fees,
+    attendance: att,
   };
 }
 

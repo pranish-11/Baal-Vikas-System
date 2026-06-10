@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
+import { requestJSON } from '../../api';
+import { API_BASE } from '../../config';
 import { AlertTriangle, ThumbsUp } from 'lucide-react';
-import { queueSyncToDB } from '../../utils/dbSync';
 
 const POINT_OPTIONS = [2, 5, 10, 15, 20];
 
 export default function AddBehaviourModal({ open, onClose }) {
-  const { students, setStudents, activities, setActivities, showToast } = useApp();
+  const { students, setStudents, showToast, refreshData } = useApp();
   const [studentId, setStudentId] = useState(students[0]?.id || '');
   const [type, setType] = useState('positive');
   const [selectedPoints, setSelectedPoints] = useState(5);
@@ -16,36 +17,35 @@ export default function AddBehaviourModal({ open, onClose }) {
 
   const ptsDelta = useCustomPoints ? (parseInt(customPoints) || 0) : selectedPoints;
   const effectiveDelta = type === 'positive' ? ptsDelta : -ptsDelta;
-  const pctDelta = effectiveDelta;
 
   if (!open) return null;
 
   const submit = () => {
-    if (!description.trim()) { showToast('Please describe the behaviour'); return; }
-    if (effectiveDelta === 0) { showToast('Points cannot be 0'); return; }
+    if (!description.trim()) return;
+    if (effectiveDelta === 0) return;
     const student = students.find(s => s.id === studentId);
     if (!student) return;
-    student.pts = Math.max(0, Math.min(200, (student.pts || 0) + effectiveDelta));
-    student.pct = Math.max(0, Math.min(100, (student.pct || 0) + pctDelta));
-    setStudents([...students]);
-    const entry = {
-      id: 'beh-' + Date.now(), studentId: student.id, studentName: student.name,
-      type, description: description.trim(),
-      ptsDelta: effectiveDelta, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toISOString().slice(0, 10),
-    };
-    const stored = JSON.parse(localStorage.getItem('axion_behaviour_entries') || '[]');
-    stored.unshift(entry);
-    localStorage.setItem('axion_behaviour_entries', JSON.stringify(stored));
-    queueSyncToDB('axion_behaviour_entries', stored);
-    const act = { id: 'act-' + Date.now(), title: `${type === 'positive' ? 'Positive' : 'Behaviour'} update: ${student.name}`, desc: description.trim(), time: 'Just now', timeLabel: 'Just now' };
-    setActivities([act, ...activities]);
-    showToast(`${effectiveDelta > 0 ? '+' : ''}${effectiveDelta} pts logged`);
+    onClose();
+
+    const pctDelta = effectiveDelta > 0 ? 2 : -2;
+
+    requestJSON(`${API_BASE}/students/${student.id}/behaviour`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delta: pctDelta }),
+    }).then(() => {
+      refreshData();
+      showToast(`Behaviour logged`);
+    }).catch(() => {
+      student.pct = Math.max(0, Math.min(100, (student.pct || 0) + pctDelta));
+      setStudents([...students]);
+      showToast(`Behaviour logged (offline)`);
+    });
+
     setDescription('');
     setUseCustomPoints(false);
     setCustomPoints('');
     setSelectedPoints(5);
-    onClose();
   };
 
   return (
@@ -54,7 +54,7 @@ export default function AddBehaviourModal({ open, onClose }) {
         <div style={{ background: type === 'positive' ? 'linear-gradient(135deg,#16a34a 0%,#22c55e 100%)' : 'linear-gradient(135deg,#dc2626 0%,#ef4444 100%)', padding: '20px 24px 18px', position: 'relative' }}>
           <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(255,255,255,0.25)', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 13, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
           <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 8 }}>{type === 'positive' ? <ThumbsUp size={20} /> : <AlertTriangle size={20} />} Log Behaviour</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Record student behaviour — affects points and behaviour score</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Record student behaviour — affects behaviour score</div>
         </div>
         <div style={{ padding: '20px 24px' }}>
           <div className="form-group-m">
@@ -101,7 +101,7 @@ export default function AddBehaviourModal({ open, onClose }) {
             <textarea className="form-textarea-m" style={{ minHeight: 70 }} value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Helped a friend with cleanup / Disrupted circle time..." />
           </div>
           <div style={{ padding: '8px 14px', borderRadius: 8, background: type === 'positive' ? '#f0fdf4' : '#fef2f2', fontSize: 12, fontWeight: 700, color: type === 'positive' ? '#16a34a' : '#dc2626', marginTop: 4 }}>
-            {effectiveDelta > 0 ? '+' : ''}{effectiveDelta} pts · {pctDelta > 0 ? '+' : ''}{pctDelta}% behaviour
+            {effectiveDelta > 0 ? '+' : ''}{effectiveDelta} pts · behaviour score
           </div>
         </div>
         <div className="modal-footer" style={{ padding: '14px 24px' }}>

@@ -12,7 +12,7 @@ const ICON_MAP = {
 };
 
 export default function StatsGrid() {
-  const { currentRole, students, complaints, messages, fees, attendanceData, user, getTeacherClassrooms, navTo } = useApp();
+  const { currentRole, students, complaints, messages, attendanceData, user, getTeacherClassrooms, navTo } = useApp();
 
   // Filter students by teacher's assigned classrooms
   let visibleStudents = students;
@@ -28,16 +28,15 @@ export default function StatsGrid() {
   const attendancePct = totalStudents ? Math.round((presentCount / totalStudents) * 100) : 0;
   const openComplaints = complaints.filter(c => c.status === 'open' || c.status === 'in-progress' || c.status === 'escalated').length;
   const unreadMessages = messages.filter(m => m.unread).length;
-  const overdueFees = fees.filter(f => f.status === 'overdue').length;
 
-  const NAV_MAP = { 'Present Today': 'students', 'Total Students': 'students', 'Unread Messages': 'messages', 'Overdue Fees': 'fees', 'Total Points': 'leaderboard', 'Open Complaints': 'complaints', 'Behavior Score': 'myChild', 'Attendance': 'myChild' };
+  const NAV_MAP = { 'Present Today': 'students', 'Total Students': 'students', 'Unread Messages': 'messages', 'Total Points': 'leaderboard', 'Open Complaints': 'complaints', 'Behavior Score': 'myChild', 'Attendance': 'myChild' };
 
   const roleStats = {
     admin: [
       { icon: 'user', bg: 'var(--primary-pale)', val: presentCount || totalStudents, label: 'Present Today', tag: totalStudents ? `${attendancePct}% of ${totalStudents} enrolled` : 'No students', tagClass: 'tag-green' },
       { icon: 'book', bg: 'var(--sky-pale)', val: totalStudents, label: 'Total Students', tag: `${new Set(students.map(s => s.class)).size} classrooms`, tagClass: 'tag-blue' },
       { icon: 'message', bg: 'var(--gold-pale)', val: unreadMessages, label: 'Unread Messages', tag: messages.length ? `${messages.length} total conversations` : 'No messages', tagClass: 'tag-gold' },
-      { icon: 'alert', bg: 'var(--coral-pale)', val: overdueFees, label: 'Overdue Fees', tag: overdueFees > 0 ? `${overdueFees} overdue` : 'All paid', tagClass: 'tag-red' },
+      { icon: 'clip', bg: 'var(--coral-pale)', val: openComplaints, label: 'Open Complaints', tag: openComplaints > 0 ? 'Needs response' : 'All handled', tagClass: 'tag-orange' },
     ],
     teacher: [
       { icon: 'user', bg: 'var(--primary-pale)', val: presentCount || totalStudents, label: 'Present Today', tag: totalStudents ? `${attendancePct}% attendance` : 'No students', tagClass: 'tag-green' },

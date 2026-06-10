@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Trophy, Award, Medal } from 'lucide-react';
-import { queueSyncToDB } from '../../utils/dbSync';
+
+const DEFAULT_TIERS = {
+  gold: { title: 'Gold Trophy', desc: 'Star sticker on class chart + 10 min extra recess + certificate of excellence' },
+  silver: { title: 'Silver Award', desc: "Choose the class's afternoon activity + homework pass (1 day)" },
+  bronze: { title: 'Bronze Badge', desc: 'Full homework pass for the week + recognition at morning circle' },
+};
 
 export default function GiveRewardModal({ open, onClose }) {
-  const { students, rewardTiers, awardedRewards, setAwardedRewards } = useApp();
+  const { students, awardedRewards, setAwardedRewards } = useApp();
+  const rewardTiers = DEFAULT_TIERS;
   const [tier, setTier] = useState('gold');
   const [studentId, setStudentId] = useState(students[0]?.id || '');
   const [note, setNote] = useState('');
@@ -32,8 +38,6 @@ export default function GiveRewardModal({ open, onClose }) {
     };
     const updated = [entry, ...awardedRewards];
     setAwardedRewards(updated);
-    localStorage.setItem('axion_awarded_rewards', JSON.stringify(updated));
-    queueSyncToDB('axion_awarded_rewards', updated);
     onClose();
   };
 

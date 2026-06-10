@@ -23,4 +23,9 @@ const awardPointsSchema = z.object({
   notifyParent: z.boolean().optional()
 });
 
-module.exports = { studentParamSchema, createStudentSchema, awardPointsSchema };
+const behaviourSchema = z.object({
+  delta: z.number().int().min(-100).max(100),
+  description: z.string().optional(),
+});
+
+module.exports = { studentParamSchema, createStudentSchema, awardPointsSchema, behaviourSchema };

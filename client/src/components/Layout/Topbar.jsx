@@ -8,9 +8,7 @@ const SUBTITLES = {
   leaderboard: 'Points ranking',
   messages: 'Communication hub',
   complaints: 'All complaints',
-  schools: 'Registered schools',
   myChild: 'Your child\'s progress',
-  fees: 'Fee records',
 };
 
 export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, notifDot, onOpenSearch }) {

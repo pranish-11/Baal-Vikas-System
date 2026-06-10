@@ -237,4 +237,21 @@ async function removeStudent(id) {
   }
 }
 
-module.exports = { getStudents, createStudent, awardPoints, updateParent, updateStudent, removeStudent };
+async function updateBehaviourScore(id, delta) {
+  const existing = await prisma.student.findUnique({ where: { id } });
+  if (!existing) {
+    const err = new Error("Student not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const newPct = Math.max(0, Math.min(100, (existing.attendancePct || 0) + delta));
+  await prisma.student.update({
+    where: { id },
+    data: { attendancePct: newPct },
+  });
+
+  return { pct: newPct };
+}
+
+module.exports = { getStudents, createStudent, awardPoints, updateParent, updateStudent, removeStudent, updateBehaviourScore };

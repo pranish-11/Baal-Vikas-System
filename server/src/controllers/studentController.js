@@ -1,4 +1,4 @@
-const { getStudents, createStudent, awardPoints, updateParent, updateStudent, removeStudent } = require("../services/studentService");
+const { getStudents, createStudent, awardPoints, updateParent, updateStudent, removeStudent, updateBehaviourScore } = require("../services/studentService");
 
 async function listStudents(req, res, next) {
   try {
@@ -54,4 +54,13 @@ async function deleteStudent(req, res, next) {
   }
 }
 
-module.exports = { listStudents, createNewStudent, awardPointsToStudent, updateStudentParent, editStudent, deleteStudent };
+async function updateBehaviourScoreOfStudent(req, res, next) {
+  try {
+    const result = await updateBehaviourScore(req.params.id, req.body.delta);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+module.exports = { listStudents, createNewStudent, awardPointsToStudent, updateStudentParent, editStudent, deleteStudent, updateBehaviourScoreOfStudent };

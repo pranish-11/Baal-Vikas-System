@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Search, Tag, UserPlus, Activity, GraduationCap, Layers, Plus } from 'lucide-react';
+import { Search, Tag, UserPlus, Activity, GraduationCap, School, Plus, Users } from 'lucide-react';
 import StudentCard from '../components/Students/StudentCard';
 import AttendanceBar from '../components/Students/AttendanceBar';
 
@@ -81,6 +81,10 @@ export default function StudentsPage() {
               onClick={() => openModal('manageClasses')}>
               <Plus size={14} /> Manage Classes
             </button>
+            <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
+              onClick={() => openModal('manageUsers')}>
+              <Users size={14} /> Accounts
+            </button>
           </>
         )}
         <div style={{ position: 'relative', maxWidth: 220 }}>
@@ -88,7 +92,7 @@ export default function StudentsPage() {
           <input className="msg-search" style={{ paddingLeft: 30, width: '100%' }} placeholder="Search student..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       </div>
-      <AttendanceBar />
+      <AttendanceBar visibleStudents={visibleStudents} />
       {filtered.length === 0 ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
           No students match this filter.
@@ -101,8 +105,8 @@ export default function StudentsPage() {
             return (
               <div key={cls}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--lavender-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Layers size={16} style={{ color: 'var(--lavender)' }} />
+                  <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #c4b5fd' }}>
+                    <School size={17} style={{ color: '#7c3aed' }} />
                   </div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{cls}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{students.length} student{students.length !== 1 ? 's' : ''}</div>

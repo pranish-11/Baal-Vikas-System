@@ -2,10 +2,11 @@ const express = require("express");
 const messagesRouter = require("./messages");
 const complaintsRouter = require("./complaints");
 const studentsRouter = require("./students");
-const schoolsRouter = require("./schools");
 const activitiesRouter = require("./activities");
+const attendanceRouter = require("./attendance");
 const authRouter = require("./auth");
 const feesRouter = require("./fees");
+const usersRouter = require("./users");
 const dataBlobRouter = require("./dataBlob");
 const authMiddleware = require("../middleware/authMiddleware");
 const prisma = require("../lib/prisma");
@@ -16,7 +17,7 @@ router.get("/", (req, res) => {
   res.json({
     status: "ok",
     message: "Axion backend is running",
-    endpoints: ["/health", "/health/db", "/api/messages", "/api/complaints", "/api/students", "/api/schools", "/api/activities", "/api/fees"]
+    endpoints: ["/health", "/health/db", "/api/messages", "/api/complaints", "/api/students", "/api/activities", "/api/fees"]
   });
 });
 
@@ -41,9 +42,10 @@ router.use("/api/auth", authRouter);
 router.use("/api/messages", authMiddleware, messagesRouter);
 router.use("/api/complaints", authMiddleware, complaintsRouter);
 router.use("/api/students", authMiddleware, studentsRouter);
-router.use("/api/schools", authMiddleware, schoolsRouter);
 router.use("/api/activities", authMiddleware, activitiesRouter);
+router.use("/api/attendance", authMiddleware, attendanceRouter);
 router.use("/api/fees", authMiddleware, feesRouter);
+router.use("/api/users", authMiddleware, usersRouter);
 router.use("/api/data", authMiddleware, dataBlobRouter);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const API_BASE = 'http://127.0.0.1:8011/api';
+import { API_BASE } from '../config';
 
 function getToken() {
   return localStorage.getItem('axion_token');
@@ -45,7 +45,6 @@ export async function syncAllFromDB() {
     'axion_teacher_classrooms',
     'axion_announcements',
     'axion_awarded_rewards',
-    'axion_reward_tiers',
     'axion_camera_order',
     'axion_student_avatars',
     'axion_file_data',
@@ -55,9 +54,7 @@ export async function syncAllFromDB() {
     'axion_messages',
     'axion_students_cache',
     'axion_complaints',
-    'axion_fees',
     'axion_activities',
-    'axion_schools',
   ];
   let restored = 0;
   for (const key of keys) {
@@ -82,7 +79,6 @@ export async function syncAllToDB() {
     'axion_teacher_classrooms',
     'axion_announcements',
     'axion_awarded_rewards',
-    'axion_reward_tiers',
     'axion_camera_order',
     'axion_student_avatars',
     'axion_file_data',
@@ -92,9 +88,7 @@ export async function syncAllToDB() {
     'axion_messages',
     'axion_students_cache',
     'axion_complaints',
-    'axion_fees',
     'axion_activities',
-    'axion_schools',
   ];
   let synced = 0;
   for (const key of keys) {
