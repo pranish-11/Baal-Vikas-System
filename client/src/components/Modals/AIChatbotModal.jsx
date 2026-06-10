@@ -79,7 +79,7 @@ function parseDateRef(q) {
 }
 
 export default function AIChatbotModal({ open, onClose, data }) {
-  const { students, attendanceData, teacherTags, activities, complaints, user } = useApp();
+  const { students, attendanceData, teacherTags, activities, complaints, user, dailyLogs } = useApp();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const chatEndRef = useRef(null);
@@ -120,7 +120,9 @@ export default function AIChatbotModal({ open, onClose, data }) {
 
   const getBehaviourEntries = () => [];
 
-  const getDailyLogForDate = () => null;
+  const getDailyLogForDate = (studentId, dateStr) => {
+    return dailyLogs?.[studentId]?.[dateStr] || null;
+  };
 
   const getTeacherSummaries = () => [];
 

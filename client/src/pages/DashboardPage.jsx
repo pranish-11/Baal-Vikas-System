@@ -3,7 +3,7 @@ import StatsGrid from '../components/Dashboard/StatsGrid';
 import ActivityFeed from '../components/Dashboard/ActivityFeed';
 import BehaviorOverview from '../components/Dashboard/BehaviorOverview';
 import MiniPodium, { MiniLBList } from '../components/Dashboard/MiniPodium';
-import { Activity, MessageSquare, Calendar, Star, ArrowRight, Check, X, Clock, UtensilsCrossed, Bed } from 'lucide-react';
+import { Activity, MessageSquare, Calendar, Star, ArrowRight, Check, X, Clock, UtensilsCrossed, Bed, Bot } from 'lucide-react';
 import LegoBrickIcon from '../components/LegoBrickIcon';
 
 export default function DashboardPage({ onNavigate }) {
@@ -25,6 +25,7 @@ export default function DashboardPage({ onNavigate }) {
       { label: 'Messages', icon: MessageSquare, color: 'var(--sky)', bg: 'var(--sky-pale)', onClick: () => onNavigate('messages'), badge: unread || null },
       { label: 'Attendance', icon: Calendar, color: 'var(--primary)', bg: 'var(--primary-pale)', onClick: () => onNavigate('attendanceReports') },
       { label: 'My Child', icon: Star, color: 'var(--gold)', bg: 'var(--gold-pale)', onClick: () => onNavigate('myChild') },
+      { label: 'Ask AI', icon: Bot, color: 'var(--primary-dark)', bg: 'var(--primary-pale)', onClick: () => openModal('aiChatbot') },
     ];
 
     return (

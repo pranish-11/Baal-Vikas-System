@@ -1,4 +1,5 @@
 const { getComplaints, replyToComplaint, resolveComplaint, createComplaint, escalateComplaint } = require("../services/complaintService");
+const { getIO } = require("../socket");
 
 async function listComplaints(req, res, next) {
   try {
@@ -16,6 +17,8 @@ async function replyToComplaintById(req, res, next) {
       return res.status(400).json({ error: "Reply text is required." });
     }
     const reply = await replyToComplaint(req.params.id, req.user, text.trim());
+    const io = getIO();
+    if (io) io.emit("complaints_updated");
     res.status(201).json({ reply });
   } catch (error) {
     next(error);
@@ -25,6 +28,8 @@ async function replyToComplaintById(req, res, next) {
 async function resolveComplaintById(req, res, next) {
   try {
     const item = await resolveComplaint(req.params.id, req.user);
+    const io = getIO();
+    if (io) io.emit("complaints_updated");
     res.json({ item });
   } catch (error) {
     next(error);
@@ -34,6 +39,8 @@ async function resolveComplaintById(req, res, next) {
 async function escalateComplaintById(req, res, next) {
   try {
     const item = await escalateComplaint(req.params.id, req.user);
+    const io = getIO();
+    if (io) io.emit("complaints_updated");
     res.json({ item });
   } catch (error) {
     next(error);
@@ -43,6 +50,8 @@ async function escalateComplaintById(req, res, next) {
 async function createNewComplaint(req, res, next) {
   try {
     const item = await createComplaint(req.body, req.user);
+    const io = getIO();
+    if (io) io.emit("complaints_updated");
     res.status(201).json({ item });
   } catch (error) {
     next(error);

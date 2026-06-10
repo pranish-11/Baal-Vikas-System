@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Save, Sparkles, RotateCcw, Zap, Check, X, UtensilsCrossed, Bed } from 'lucide-react';
-import { queueSyncToDB } from '../utils/dbSync';
+import { requestJSON } from '../api';
+import { API_BASE } from '../config';
 import LegoBrickIcon from '../components/LegoBrickIcon';
 
 const ACTIVITIES = [
@@ -18,13 +19,8 @@ function loadAllLogs() {
   try { return JSON.parse(localStorage.getItem('axion_daily_logs')) || {}; } catch { return {}; }
 }
 
-function saveAllLogs(logs) {
-  localStorage.setItem('axion_daily_logs', JSON.stringify(logs));
-  queueSyncToDB('axion_daily_logs', logs);
-}
-
 export default function DailyLogPage() {
-  const { students, setActivities, activities, showToast, currentRole, user, getTeacherClassrooms } = useApp();
+  const { students, setActivities, activities, showToast, currentRole, user, getTeacherClassrooms, dailyLogs, setDailyLogs } = useApp();
   const [logs, setLogs] = useState({});
   const [dirty, setDirty] = useState({});
   const [saving, setSaving] = useState({});
@@ -36,8 +32,27 @@ export default function DailyLogPage() {
     : students;
 
   useEffect(() => {
-    setLogs(loadAllLogs());
-  }, []);
+    const local = loadAllLogs();
+    // Merge context data (most complete) with local (may have unsaved edits)
+    setLogs({ ...dailyLogs, ...local });
+  }, [dailyLogs]);
+
+  const persistLogs = useCallback((logsToSave) => {
+    // Merge local edits into the full context data to preserve other students' logs
+    const merged = { ...dailyLogs };
+    for (const [sid, dates] of Object.entries(logsToSave)) {
+      if (!merged[sid]) merged[sid] = {};
+      Object.assign(merged[sid], dates);
+    }
+    localStorage.setItem('axion_daily_logs', JSON.stringify(merged));
+    setDailyLogs(merged);
+    // Save directly to backend (bypass debounced queueSyncToDB for immediate sync)
+    requestJSON(`${API_BASE}/data/axion_daily_logs`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(merged),
+    }).catch(() => {});
+  }, [dailyLogs, setDailyLogs]);
 
   const getDefaultRow = () => ({ ate: false, nap: false, play: false, note: '', updatedAt: null });
 
@@ -55,7 +70,7 @@ export default function DailyLogPage() {
 
   const saveRow = (sid) => {
     setSaving({ ...saving, [sid]: true });
-    saveAllLogs({ ...logs });
+    persistLogs({ ...logs });
     const row = getRow(sid);
     const student = students.find(s => s.id === sid);
     if (student) {
@@ -76,7 +91,7 @@ export default function DailyLogPage() {
   const saveAll = () => {
     const dirtyIds = Object.keys(dirty).filter(k => dirty[k]);
     if (dirtyIds.length === 0) { showToast('No changes to save'); return; }
-    saveAllLogs(logs);
+    persistLogs(logs);
     dirtyIds.forEach(sid => {
       const row = getRow(sid);
       const student = students.find(s => s.id === sid);
