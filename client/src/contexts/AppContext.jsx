@@ -59,6 +59,17 @@ export function AppProvider({ children }) {
   const [attendanceDraft, setAttendanceDraft] = useState({});
   const [dailyLogs, setDailyLogs] = useState({});
 
+  // Persist unread message state to localStorage so it survives page refresh
+  useEffect(() => {
+    try {
+      const unreadState = {};
+      for (const m of messages) {
+        if (m.unread) unreadState[m.id] = true;
+      }
+      localStorage.setItem('axion_unread_messages', JSON.stringify(unreadState));
+    } catch {}
+  }, [messages]);
+
   // Auto-update notification dot on data changes
   const refreshNotifDot = useCallback(() => {
     let has = false;
@@ -95,6 +106,7 @@ export function AppProvider({ children }) {
 
   // Socket.IO for real-time messaging
   const socketRef = useRef(null);
+  const replyInFlightRef = useRef(false);
 
 
 
@@ -179,6 +191,13 @@ export function AppProvider({ children }) {
       refreshDataRef.current();
     });
 
+    socket.on('complaints_updated', () => {
+      if (replyInFlightRef.current) return;
+      requestJSON(`${API_BASE}/complaints`).then(res => {
+        if (res && res.items) setComplaints(res.items);
+      }).catch(() => {});
+    });
+
     socket.on('disconnect', () => {});
 
     socketRef.current = socket;
@@ -213,7 +232,11 @@ export function AppProvider({ children }) {
           if (!existingIds.has(t.id)) merged.push(t);
           existingIds.add(t.id);
         }
-        return merged;
+        // Restore persisted unread state from localStorage
+        try {
+          const stored = JSON.parse(localStorage.getItem('axion_unread_messages') || '{}');
+          return merged.map(m => ({ ...m, unread: m.unread || !!stored[m.id] }));
+        } catch { return merged; }
       });
 
       if (data.complaints && data.complaints.length > 0) setComplaints(data.complaints);
@@ -351,7 +374,7 @@ export function AppProvider({ children }) {
     }
     closeModal();
     try {
-      await requestJSON(`${API_BASE}/complaints`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await requestJSON(`${API_BASE}/complaints`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: payload.subject, desc: payload.details || '', priority: payload.priority, by: user?.name || currentRole, type: 'OTHER' }) });
       await refreshData();
       showToast('Complaint filed successfully!');
     } catch (e) {
@@ -464,10 +487,8 @@ export function AppProvider({ children }) {
 
   const submitTicketReply = useCallback(async (id, text) => {
     if (!text) return;
-    try {
-      await requestJSON(`${API_BASE}/complaints/${id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-      await refreshData();
-    } catch (e) {
+    // Local complaints (comp- prefix) don't exist on backend — handle reply locally
+    if (typeof id === 'string' && id.startsWith('comp-')) {
       const c = complaints.find(x => x.id === id);
       if (!c || c.status === 'resolved') return;
       const userName = user?.name || currentRole;
@@ -476,8 +497,32 @@ export function AppProvider({ children }) {
       c.replies.push(newReply);
       c.status = 'in-progress';
       setComplaints([...complaints]);
+      return;
     }
-  }, [complaints, user, currentRole, refreshData]);
+    replyInFlightRef.current = true;
+    try {
+      const result = await requestJSON(`${API_BASE}/complaints/${id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      const c2 = complaints.find(x => x.id === id);
+      if (c2 && c2.status !== 'resolved') {
+        if (!c2.replies) c2.replies = [];
+        c2.replies.push({ id: result.reply.id, authorName: result.reply.authorName, authorRole: result.reply.authorRole, text: result.reply.text, time: result.reply.time });
+        if (c2.status === 'open') c2.status = 'in-progress';
+        setComplaints([...complaints]);
+      }
+    } catch (e) {
+      // API failed — add a local-only reply so user still sees it
+      const c2 = complaints.find(x => x.id === id);
+      if (c2 && c2.status !== 'resolved') {
+        if (!c2.replies) c2.replies = [];
+        c2.replies.push({ id: 'local-' + Date.now(), authorName: user?.name || currentRole, authorRole: currentRole, text, time: 'Now' });
+        if (c2.status === 'open') c2.status = 'in-progress';
+        setComplaints([...complaints]);
+      }
+      console.error('Reply API failed:', e.message);
+    } finally {
+      replyInFlightRef.current = false;
+    }
+  }, [complaints, user, currentRole]);
 
   const sendMsg = useCallback(async (text, fileData) => {
     if ((!text && !fileData) || !currentMsgId) return;

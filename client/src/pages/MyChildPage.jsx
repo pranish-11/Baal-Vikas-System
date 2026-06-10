@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
 import { Tag, Plus, Check, Clock, X, Calendar, Edit3, Sparkles, UtensilsCrossed, Bed } from 'lucide-react';
 import LegoBrickIcon from '../components/LegoBrickIcon';
+import { requestJSON } from '../api';
+import { API_BASE } from '../config';
 
 export default function MyChildPage() {
   const { students, activities, setActivities, currentRole, user, attendanceData, dailyLogs, setDailyLogs, openModal, teacherTags, showToast } = useApp();
@@ -97,13 +99,19 @@ export default function MyChildPage() {
 
   const saveDailyLog = () => {
     const data = { ...logForm, updatedAt: new Date().toISOString() };
-    setDailyLogs(prev => ({
-      ...prev,
+    const newDailyLogs = {
+      ...dailyLogs,
       [myChild.id]: {
-        ...(prev[myChild.id] || {}),
+        ...(dailyLogs[myChild.id] || {}),
         [dateStr]: data,
       },
-    }));
+    };
+    setDailyLogs(newDailyLogs);
+    requestJSON(`${API_BASE}/data/axion_daily_logs`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newDailyLogs),
+    }).catch(() => {});
     const act = {
       id: 'act-' + Date.now(),
       title: `Daily log updated for ${myChild.name}`,
@@ -197,13 +205,26 @@ export default function MyChildPage() {
             </div>
           </div>
 
-          {dailyLog && (dailyLog.ate || dailyLog.nap || dailyLog.play || dailyLog.note) && (
+          {dailyLog && (
             <div style={{ padding: 14, borderRadius: 12, background: '#fafafa', border: '1px solid var(--border)', marginBottom: 14 }}>
               <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 8 }}>📋 Today's Activities</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: dailyLog.note ? 8 : 0 }}>
-                {dailyLog.ate && <span style={{ padding: '4px 10px', borderRadius: 20, background: '#e8f5e9', color: '#2e7d32', fontSize: 11, fontWeight: 700 }}>🍽️ Ate meals</span>}
-                {dailyLog.nap && <span style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--sky-pale)', color: '#1565c0', fontSize: 11, fontWeight: 700 }}>💤 Slept</span>}
-                {dailyLog.play && <span style={{ padding: '4px 10px', borderRadius: 20, background: 'var(--gold-pale)', color: '#e65100', fontSize: 11, fontWeight: 700 }}>🎮 Played</span>}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: dailyLog.note ? 8 : 0 }}>
+                {[
+                  { key: 'ate', label: 'Ate meals', icon: '🍽️', done: dailyLog.ate, doneBg: '#e8f5e9', doneCol: '#2e7d32', notBg: '#f5f5f5', notCol: '#aaa' },
+                  { key: 'nap', label: 'Slept', icon: '💤', done: dailyLog.nap, doneBg: 'var(--sky-pale)', doneCol: '#1565c0', notBg: '#f5f5f5', notCol: '#aaa' },
+                  { key: 'play', label: 'Played', icon: '🎮', done: dailyLog.play, doneBg: 'var(--gold-pale)', doneCol: '#e65100', notBg: '#f5f5f5', notCol: '#aaa' },
+                ].map(a => (
+                  <span key={a.key} style={{
+                    padding: '4px 10px', borderRadius: 20,
+                    background: a.done ? a.doneBg : a.notBg,
+                    color: a.done ? a.doneCol : a.notCol,
+                    fontSize: 11, fontWeight: 700,
+                    transition: 'all .15s',
+                    opacity: a.done ? 1 : 0.6,
+                  }}>
+                    {a.icon} {a.label}{!a.done ? ' — Not yet' : ''}
+                  </span>
+                ))}
               </div>
               {dailyLog.note && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', fontStyle: 'italic' }}>"{dailyLog.note}"</div>}
             </div>
