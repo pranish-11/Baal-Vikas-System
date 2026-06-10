@@ -36,7 +36,7 @@ async function main() {
 
   await prisma.student.createMany({
     data: [
-      { fullName: "Liam Kim", className: "Sunflower Class", behaviorScore: 94, attendancePct: 96, avatarInitials: "LK", avatarColor: "var(--primary)", schoolId: sunrise.id },
+      { fullName: "Liam Kim", className: "Sunflower Class", behaviorScore: 94, attendancePct: 96, avatarInitials: "LK", avatarColor: "var(--primary)", parentEmail: "lena@axion.edu", schoolId: sunrise.id },
       { fullName: "Noah K.", className: "Sunflower Class", behaviorScore: 88, attendancePct: 93, avatarInitials: "NK", avatarColor: "var(--sky)", schoolId: sunrise.id },
       { fullName: "Ava Singh", className: "Sunflower Class", behaviorScore: 91, attendancePct: 97, avatarInitials: "AS", avatarColor: "var(--mint)", schoolId: sunrise.id },
       { fullName: "Mila Chen", className: "Daisy Class", behaviorScore: 86, attendancePct: 95, avatarInitials: "MC", avatarColor: "var(--lavender)", schoolId: littleBloom.id },

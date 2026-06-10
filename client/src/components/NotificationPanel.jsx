@@ -1,15 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { MessageSquare, AlertTriangle, CreditCard, CalendarX, Megaphone } from 'lucide-react';
+import { MessageSquare, AlertTriangle, CalendarX, Megaphone } from 'lucide-react';
 import { queueSyncToDB } from '../utils/dbSync';
 
 export default function NotificationPanel({ open, onClose, onNavigate }) {
-  const { messages, complaints, activities, fees, students, attendanceData, currentRole, announcements, user, markAllMessagesRead } = useApp();
+  const { messages, complaints, activities, students, attendanceData, currentRole, announcements, user, markAllMessagesRead, getTeacherClassrooms } = useApp();
   const [readIds, setReadIds] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('axion_read_notifs') || '[]')); } catch { return new Set(); }
   });
 
   const notifs = [];
+
+  // Role-filtered students
+  let visibleStudents = students;
+  if (currentRole === 'teacher') {
+    const assigned = getTeacherClassrooms(user?.email);
+    if (assigned) visibleStudents = students.filter(s => assigned.includes(s.class));
+  } else if (currentRole === 'parent') {
+    visibleStudents = students.filter(s => s.parentEmail && s.parentEmail.toLowerCase() === user?.email?.toLowerCase());
+  }
 
   // Announcements — filter by target role
   announcements.forEach(a => {
@@ -33,24 +42,10 @@ export default function NotificationPanel({ open, onClose, onNavigate }) {
     }
   });
 
-  // Overdue fees
-  fees.forEach(f => {
-    if (f.status === 'overdue') {
-      notifs.push({ id: 'fee-' + f.id, icon: CreditCard, iconColor: '#dc2626', title: `Fee overdue: ${f.title}`, sub: `$${f.balance.toFixed(2)} outstanding · ${f.studentName || ''}`, unread: true, action: () => onNavigate('fees') });
-    } else if (f.status === 'pending' && f.dueDate) {
-      const due = new Date(f.dueDate + 'T00:00:00');
-      const weekAway = new Date();
-      weekAway.setDate(weekAway.getDate() + 7);
-      if (due <= weekAway) {
-        notifs.push({ id: 'fee-due-' + f.id, icon: CreditCard, iconColor: 'var(--gold)', title: `Fee due soon: ${f.title}`, sub: `Due ${f.dueDate} · $${f.balance.toFixed(2)} remaining`, unread: true, action: () => onNavigate('fees') });
-      }
-    }
-  });
-
-  // Absent students today
+  // Absent students today (role-filtered)
   const today = new Date().toISOString().slice(0, 10);
   const rec = attendanceData[today] || {};
-  students.forEach(s => {
+  visibleStudents.forEach(s => {
     if (rec[s.id] === 'absent') {
       notifs.push({ id: 'absent-' + s.id, icon: CalendarX, iconColor: '#e11d48', title: `${s.name} is absent today`, sub: `${s.class} · marked absent`, unread: true, action: () => onNavigate('students') });
     }

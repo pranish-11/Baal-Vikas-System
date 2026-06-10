@@ -9,25 +9,18 @@ import DetectionPage from './pages/DetectionPage';
 import LeaderboardPage from './pages/LeaderboardPage';
 import MessagesPage from './pages/MessagesPage';
 import ComplaintsPage from './pages/ComplaintsPage';
-import SchoolsPage from './pages/SchoolsPage';
 import MyChildPage from './pages/MyChildPage';
-import FeesPage from './pages/FeesPage';
 import AttendanceReportsPage from './pages/AttendanceReportsPage';
+import DailyLogPage from './pages/DailyLogPage';
 import AwardModal from './components/Modals/AwardModal';
 import ComplaintModal from './components/Modals/ComplaintModal';
 import StudentModal from './components/Modals/StudentModal';
-import RewardModal from './components/Modals/RewardModal';
 import AttendanceModal from './components/Modals/AttendanceModal';
-import GiveRewardModal from './components/Modals/GiveRewardModal';
 import NewMsgModal from './components/Modals/NewMsgModal';
 import TicketDetail from './components/Modals/TicketDetail';
-import AddFeeModal from './components/Modals/AddFeeModal';
-import RecordPaymentModal from './components/Modals/RecordPaymentModal';
-import SendReminderModal from './components/Modals/SendReminderModal';
 import StudentDetailModal from './components/Modals/StudentDetailModal';
 import EditStudentModal from './components/Modals/EditStudentModal';
-import EditSchoolModal from './components/Modals/EditSchoolModal';
-import SchoolDetailModal from './components/Modals/SchoolDetailModal';
+
 
 import EditParentModal from './components/Modals/EditParentModal';
 import AnnouncementModal from './components/Modals/AnnouncementModal';
@@ -38,25 +31,19 @@ import LinkParentModal from './components/Modals/LinkParentModal';
 import AssignClassModal from './components/Modals/AssignClassModal';
 import ManageClassesModal from './components/Modals/ManageClassesModal';
 import AddBehaviourModal from './components/Modals/AddBehaviourModal';
+import UserManagementModal from './components/Modals/UserManagementModal';
 import GlobalSearch from './components/GlobalSearch';
+import { Bot } from 'lucide-react';
 
 const MODAL_MAP = {
   award: AwardModal,
   complaint: ComplaintModal,
   student: StudentModal,
-  editRewards: RewardModal,
   attendance: AttendanceModal,
-  giveReward: GiveRewardModal,
   newMsg: NewMsgModal,
   ticketDetail: TicketDetail,
-  addFee: AddFeeModal,
-  recordPayment: RecordPaymentModal,
-  sendReminder: SendReminderModal,
   studentDetail: StudentDetailModal,
   editStudent: EditStudentModal,
-  editSchool: EditSchoolModal,
-  schoolDetail: SchoolDetailModal,
-
   editParent: EditParentModal,
   announcement: AnnouncementModal,
   teacherTag: TeacherTagModal,
@@ -66,6 +53,7 @@ const MODAL_MAP = {
   assignClass: AssignClassModal,
   manageClasses: ManageClassesModal,
   addBehaviour: AddBehaviourModal,
+  manageUsers: UserManagementModal,
 };
 
 function Toast({ message }) {
@@ -105,10 +93,9 @@ function AppContent() {
       case 'leaderboard': return <LeaderboardPage />;
       case 'messages': return <MessagesPage />;
       case 'complaints': return <ComplaintsPage />;
-      case 'schools': return <SchoolsPage />;
       case 'myChild': return <MyChildPage />;
-      case 'fees': return <FeesPage />;
       case 'attendanceReports': return <AttendanceReportsPage />;
+      case 'dailyLog': return <DailyLogPage />;
       default: return <DashboardPage onNavigate={handleNavigate} />;
     }
   };
@@ -136,6 +123,21 @@ function AppContent() {
       />
       {ActiveModal && <ActiveModal open={true} onClose={closeModal} data={modalData} />}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      {currentRole === 'parent' && (
+        <button onClick={() => openModal('aiChatbot')} title="Ask Axion AI"
+          style={{
+            position: 'fixed', bottom: 24, right: 24, zIndex: 999,
+            width: 54, height: 54, borderRadius: '50%', border: 'none',
+            background: 'linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%)',
+            color: '#fff', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'transform .2s, box-shadow .2s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.32)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.25)'; }}>
+          <Bot size={24} />
+        </button>
+      )}
       <Toast message={toastMessage} />
     </>
   );

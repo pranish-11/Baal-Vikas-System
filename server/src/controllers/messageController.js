@@ -1,4 +1,5 @@
 const { addMessageChat, getMessages, getEligibleUsers, createThread } = require("../services/messageService");
+const { getIO } = require("../socket");
 
 async function listMessages(req, res, next) {
   try {
@@ -14,6 +15,31 @@ async function createChatMessage(req, res, next) {
     const id = req.params.id;
     const item = await addMessageChat(id, req.body, req.user);
     res.status(201).json({ item });
+
+    // Emit socket event to all participants in real-time
+    try {
+      const io = getIO();
+      if (io && item.participantIds) {
+        for (const pid of item.participantIds) {
+          if (pid !== item.senderId) {
+            io.to(pid).emit("new_message", {
+              threadId: id,
+              chatId: item.id,
+              message: {
+                text: req.body.text,
+                time: req.body.time || "Now",
+                from: item.senderId,
+                from_dir: "in",
+                authorEmail: req.body.authorEmail || req.user.email || "",
+              },
+              from: item.senderId,
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Socket emit failed:", e.message);
+    }
   } catch (error) {
     next(error);
   }

@@ -9,8 +9,13 @@ const PRESET_TAGS = [
 ];
 
 export default function TeacherTagModal({ open, onClose }) {
-  const { students, teacherTags, addTeacherTag, removeTeacherTag } = useApp();
-  const [selectedStudent, setSelectedStudent] = useState(students[0]?.id || '');
+  const { students, teacherTags, addTeacherTag, removeTeacherTag, currentRole, user, getTeacherClassrooms } = useApp();
+
+  const visibleStudents = currentRole === 'teacher'
+    ? (() => { const a = getTeacherClassrooms(user?.email); return a ? students.filter(s => a.includes(s.class)) : students; })()
+    : students;
+
+  const [selectedStudent, setSelectedStudent] = useState(visibleStudents[0]?.id || '');
   const [customTag, setCustomTag] = useState('');
 
   if (!open) return null;
@@ -38,7 +43,7 @@ export default function TeacherTagModal({ open, onClose }) {
         <div className="form-group">
           <label className="form-label">Student</label>
           <select className="form-select-m" value={selectedStudent} onChange={e => setSelectedStudent(e.target.value)}>
-            {students.map(s => <option key={s.id} value={s.id}>{s.name} — {s.class}</option>)}
+            {visibleStudents.map(s => <option key={s.id} value={s.id}>{s.name} — {s.class}</option>)}
           </select>
         </div>
 

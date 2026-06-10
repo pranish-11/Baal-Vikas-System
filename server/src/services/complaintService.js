@@ -12,22 +12,28 @@ function mapPriority(priority) { return priority.toLowerCase(); }
 async function getComplaints(user) {
   const where = user.role === "PARENT" ? { filedByUserId: user.userId } : {};
 
-  let complaints;
-  try {
-    complaints = await prisma.complaint.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: {
-        replies: { orderBy: { createdAt: "asc" } },
-      },
-    });
-  } catch (e) {
-    // Fallback if ComplaintReply model not yet available (Prisma client not regenerated)
-    complaints = await prisma.complaint.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
-    complaints = complaints.map(c => ({ ...c, replies: [] }));
+  const complaints = await prisma.complaint.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  });
+
+  const complaintIds = complaints.map(c => c.id);
+  let allReplies = [];
+  if (complaintIds.length > 0) {
+    try {
+      allReplies = await prisma.complaintReply.findMany({
+        where: { complaintId: { in: complaintIds } },
+        orderBy: { createdAt: "asc" },
+      });
+    } catch (e) {
+      // ComplaintReply model may not be available
+    }
+  }
+
+  const repliesByComplaintId = {};
+  for (const r of allReplies) {
+    if (!repliesByComplaintId[r.complaintId]) repliesByComplaintId[r.complaintId] = [];
+    repliesByComplaintId[r.complaintId].push(r);
   }
 
   return complaints.map((item) => ({
@@ -42,7 +48,7 @@ async function getComplaints(user) {
     by: item.by,
     filedByUserId: item.filedByUserId,
     time: item.timeLabel,
-    replies: (item.replies || []).map((r) => ({
+    replies: (repliesByComplaintId[item.id] || []).map((r) => ({
       id: r.id,
       authorName: r.authorName,
       authorRole: r.authorRole.toLowerCase(),
@@ -78,13 +84,7 @@ async function replyToComplaint(id, user, text) {
       text,
       timeLabel,
     },
-  }).catch(() => ({
-    id: "temp",
-    authorName: user.name || user.email,
-    authorRole: user.role,
-    text,
-    timeLabel,
-  }));
+  });
 
   // Move to IN_PROGRESS when staff (teacher/admin) replies, but don't downgrade ESCALATED back to open
   if (user.role === "TEACHER" || user.role === "ADMIN") {

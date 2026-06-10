@@ -1,78 +1,50 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
 import { requestJSON, login as apiLogin, register as apiRegister, fetchAllData } from '../api';
-import { seedDefaultData } from '../utils/seedData';
-import { syncAllFromDB, queueSyncToDB } from '../utils/dbSync';
-
-const API_BASE = 'http://127.0.0.1:8011/api';
+import { API_BASE, SOCKET_URL } from '../config';
 
 const AppContext = createContext(null);
 
 export const ROLES = {
-  admin: { name: 'Admin User', role: 'Administrator', avi: 'AD', color: 'var(--primary)', pages: ['dashboard', 'students', 'detection', 'leaderboard', 'messages', 'complaints', 'schools', 'fees', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg> Register Student', ctaFn: 'openStudentModal', school: 'Sunrise Montessori' },
-  teacher: { name: 'Ms. Anika Roy', role: 'Teacher · Room 3', avi: 'AR', color: 'var(--sky)', pages: ['dashboard', 'students', 'detection', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Award Points', ctaFn: 'openAwardModal', school: 'Room 3 — Sunflower Class' },
-  parent: { name: 'Mrs. Lena Kim', role: 'Parent of Liam K.', avi: 'LK', color: 'var(--coral)', pages: ['myChild', 'detection', 'messages', 'complaints', 'fees', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg> File Complaint', ctaFn: 'openComplaintModal', school: 'Sunrise Montessori' },
+  admin: { name: 'Admin User', role: 'Administrator', avi: 'AD', color: 'var(--primary)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg> Register Student', ctaFn: 'openStudentModal', school: 'Sunrise Montessori' },
+  teacher: { name: 'Ms. Anika Roy', role: 'Teacher · Room 3', avi: 'AR', color: 'var(--sky)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Award Points', ctaFn: 'openAwardModal', school: 'Room 3 — Sunflower Class' },
+  parent: { name: 'Mrs. Lena Kim', role: 'Parent of Liam K.', avi: 'LK', color: 'var(--coral)', pages: ['dashboard', 'myChild', 'detection', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg> File Complaint', ctaFn: 'openComplaintModal', school: 'Sunrise Montessori' },
 };
 
 export const NAV_DEFS = {
   dashboard: { label: 'Dashboard', icon: 'LayoutDashboard', section: 'Overview' },
   students: { label: 'Students', icon: 'Users', section: 'Overview' },
   detection: { label: 'Detection', icon: 'Video', section: 'Overview' },
+  dailyLog: { label: 'Daily Log', icon: 'Notebook', section: 'Overview' },
   leaderboard: { label: 'Leaderboard', icon: 'Trophy', section: 'Engagement' },
   messages: { label: 'Messages', icon: 'MessageSquare', section: 'Engagement' },
   complaints: { label: 'Complaints', icon: 'ClipboardList', section: 'Engagement' },
-  schools: { label: 'Schools', icon: 'School', section: 'Admin' },
   myChild: { label: 'My Child', icon: 'Star', section: 'Overview' },
-  fees: { label: 'Fees', icon: 'CreditCard', section: 'Finance' },
   attendanceReports: { label: 'Attendance', icon: 'ClipboardCheck', section: 'Overview' },
 };
 
 export function AppProvider({ children }) {
-  seedDefaultData();
   // Auth state
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [currentRole, setCurrentRole] = useState('admin');
   const [currentPage, setCurrentPage] = useState('dashboard');
-  const [currentMsgId, setCurrentMsgId] = useState(() => {
-    try { return localStorage.getItem('axion_current_msg_id') || null; } catch { return null; }
-  });
+  const [currentMsgId, setCurrentMsgId] = useState(null);
   const [currentMsgRoleFilter, setCurrentMsgRoleFilter] = useState('all');
   const [currentStudentFilter, setCurrentStudentFilter] = useState('all');
   const [currentComplaintFilter, setCurrentComplaintFilter] = useState('all');
-  const [currentFeeFilter, setCurrentFeeFilter] = useState('all');
   const [escalatedIds, setEscalatedIds] = useState(new Set());
   const [readNotifIds, setReadNotifIds] = useState(new Set());
-  const [deletedConversationIds, setDeletedConversationIds] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); } catch { return new Set(); }
-  });
+  const [deletedConversationIds, setDeletedConversationIds] = useState(new Set());
   const [allEligibleUsers, setAllEligibleUsers] = useState([]);
   const [currentLBFilter, setCurrentLBFilter] = useState('today');
   const lbCacheRef = useRef({});
 
-  // Data state — start empty, populate from backend or cache
-  const [students, setStudents] = useState(() => {
-    try { const c = localStorage.getItem('axion_students_cache'); return c ? JSON.parse(c) : []; } catch { return []; }
-  });
-  const [complaints, setComplaints] = useState(() => {
-    try { const c = localStorage.getItem('axion_complaints'); return c ? JSON.parse(c) : []; } catch { return []; }
-  });
-  const [messages, setMessages] = useState(() => {
-    try {
-      const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations')));
-      const msgs = JSON.parse(localStorage.getItem('axion_messages')) || [];
-      // Filter out deleted messages and legacy messages without participants
-      return msgs.filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants));
-    } catch { return []; }
-  });
-  const [schools, setSchools] = useState(() => {
-    try { const v = localStorage.getItem('axion_schools'); return v ? JSON.parse(v) : []; } catch { return []; }
-  });
-  const [activities, setActivities] = useState(() => {
-    try { const v = localStorage.getItem('axion_activities'); return v ? JSON.parse(v) : []; } catch { return []; }
-  });
-  const [fees, setFees] = useState(() => {
-    try { const v = localStorage.getItem('axion_fees'); return v ? JSON.parse(v) : []; } catch { return []; }
-  });
+  // Data state — start empty, populate from backend via refreshData
+  const [students, setStudents] = useState([]);
+  const [complaints, setComplaints] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [activities, setActivities] = useState([]);
 
   // UI state
   const [notificationDot, setNotificationDot] = useState(false);
@@ -80,25 +52,32 @@ export function AppProvider({ children }) {
   const [activeModal, setActiveModal] = useState(null);
   const [modalData, setModalData] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
-  const [selectedChildId, setSelectedChildId] = useState(() => {
-    try { return localStorage.getItem('axion_child_id_default'); } catch { return null; }
-  });
+  const [selectedChildId, setSelectedChildId] = useState(null);
 
   // Attendance
-  const [attendanceData, setAttendanceData] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_attendance')) || {}; } catch { return {}; }
-  });
+  const [attendanceData, setAttendanceData] = useState({});
   const [attendanceDraft, setAttendanceDraft] = useState({});
+  const [dailyLogs, setDailyLogs] = useState({});
+
+  // Persist unread message state to localStorage so it survives page refresh
+  useEffect(() => {
+    try {
+      const unreadState = {};
+      for (const m of messages) {
+        if (m.unread) unreadState[m.id] = true;
+      }
+      localStorage.setItem('axion_unread_messages', JSON.stringify(unreadState));
+    } catch {}
+  }, [messages]);
 
   // Auto-update notification dot on data changes
   const refreshNotifDot = useCallback(() => {
     let has = false;
     for (const m of messages) { if (m.unread) { has = true; break; } }
     if (!has) for (const c of complaints) { if (c.status === 'open') { has = true; break; } }
-    if (!has) for (const f of fees) { if (f.status === 'overdue') { has = true; break; } }
-    if (!has) { const today = new Date().toISOString().slice(0, 10); const rec = attendanceData[today] || {}; for (const s of students) { if (rec[s.id] === 'absent') { has = true; break; } } }
+    if (!has) { const today = new Date().toISOString().slice(0, 10); const rec = attendanceData[today] || {}; const checkStudents = currentRole === 'parent' ? students.filter(s => s.parentEmail && s.parentEmail.toLowerCase() === user?.email?.toLowerCase()) : students; for (const s of checkStudents) { if (rec[s.id] === 'absent') { has = true; break; } } }
     setNotificationDot(has);
-  }, [messages, complaints, fees, students, attendanceData, setNotificationDot]);
+  }, [messages, complaints, students, attendanceData, currentRole, user, setNotificationDot]);
 
   useEffect(() => { refreshNotifDot(); }, [refreshNotifDot]);
 
@@ -106,27 +85,8 @@ export function AppProvider({ children }) {
     setMessages(prev => prev.map(m => ({ ...m, unread: false })));
   }, []);
 
-  // Rewards
-  const [awardedRewards, setAwardedRewards] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_awarded_rewards')) || []; } catch { return []; }
-  });
-  const [selectedGiveRewardTier, setSelectedGiveRewardTier] = useState('gold');
-  const [rewardTiers, setRewardTiers] = useState(() => {
-    try {
-      const saved = localStorage.getItem('axion_reward_tiers');
-      return saved ? JSON.parse(saved) : {
-        gold: { title: 'Gold Trophy', desc: 'Star sticker on class chart + 10 min extra recess + certificate of excellence' },
-        silver: { title: 'Silver Award', desc: "Choose the class's afternoon activity + homework pass (1 day)" },
-        bronze: { title: 'Bronze Badge', desc: 'Full homework pass for the week + recognition at morning circle' },
-      };
-    } catch {
-      return {
-        gold: { title: 'Gold Trophy', desc: 'Star sticker on class chart + 10 min extra recess + certificate of excellence' },
-        silver: { title: 'Silver Award', desc: "Choose the class's afternoon activity + homework pass (1 day)" },
-        bronze: { title: 'Bronze Badge', desc: 'Full homework pass for the week + recognition at morning circle' },
-      };
-    }
-  });
+  // noop
+
 
   // Toast
   const showToast = useCallback((msg) => {
@@ -144,6 +104,110 @@ export function AppProvider({ children }) {
     }
   }, []);
 
+  // Socket.IO for real-time messaging
+  const socketRef = useRef(null);
+  const replyInFlightRef = useRef(false);
+
+
+
+  useEffect(() => {
+    const uid = user?.id || user?._id;
+    if (!uid) return;
+
+    const socket = io(SOCKET_URL, {
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      socket.emit('identify', uid);
+      socket.emit('join', uid);
+    });
+
+    socket.on('new_message', (data) => {
+      const { threadId, chatId, message } = data;
+      if (!threadId || !message) return;
+      setMessages(prev => {
+        const idx = prev.findIndex(m => m.id === threadId);
+        if (idx === -1) {
+          // Unknown thread — trigger a background refresh to pull it in
+          setTimeout(() => {
+            requestJSON(`${API_BASE}/messages`)
+              .then(res => {
+                const freshThreads = res.items || [];
+                if (freshThreads.length > 0) {
+                  const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations') || '[]'));
+                  setMessages(current => {
+                    const currentIds = new Set(current.map(m => m.id));
+                    const newOnes = freshThreads.filter(t => !deleted.has(t.id) && !currentIds.has(t.id));
+                    if (newOnes.length === 0) return current;
+                    return [...newOnes, ...current];
+                  });
+                }
+              })
+              .catch(() => {});
+          }, 300);
+          return prev;
+        }
+        const m = prev[idx];
+        const chat = m.chat || [];
+        const last = chat[chat.length - 1];
+        if (last && last.text === message.text && last.time === message.time && (last.from === 'in' || last.from_dir === 'in')) {
+          return prev;
+        }
+        const entry = {
+          chatId: chatId || '',
+          from: 'in',
+          from_dir: 'in',
+          text: message.text || '',
+          time: message.time || 'Now',
+          authorId: message.from,
+          authorEmail: message.authorEmail || '',
+        };
+        const updated = { ...m };
+        if (!updated.participants && updated.participantIds) {
+          updated.participants = updated.participantIds;
+        }
+        return [
+          ...prev.slice(0, idx),
+          { ...updated, chat: [...chat, entry], preview: entry.text, time: entry.time, unread: true },
+          ...prev.slice(idx + 1),
+        ];
+      });
+    });
+
+    socket.on('daily_logs_updated', () => {
+      requestJSON(`${API_BASE}/data/axion_daily_logs`).then(blob => {
+        if (blob && blob.data) setDailyLogs(blob.data);
+      }).catch(() => {});
+    });
+
+    socket.on('attendance_updated', (data) => {
+      const attDate = data?.date || new Date().toISOString().slice(0, 10);
+      requestJSON(`${API_BASE}/attendance?date=${attDate}`).then(res => {
+        if (res && res.records && Object.keys(res.records).length > 0) {
+          setAttendanceData(prev => ({ ...prev, [attDate]: res.records }));
+        }
+      }).catch(() => {});
+      refreshDataRef.current();
+    });
+
+    socket.on('complaints_updated', () => {
+      if (replyInFlightRef.current) return;
+      requestJSON(`${API_BASE}/complaints`).then(res => {
+        if (res && res.items) setComplaints(res.items);
+      }).catch(() => {});
+    });
+
+    socket.on('disconnect', () => {});
+
+    socketRef.current = socket;
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [user?.id]);
+
   const openModal = useCallback((id, data) => {
     setActiveModal(id);
     setModalData(data || null);
@@ -153,35 +217,46 @@ export function AppProvider({ children }) {
     setModalData(null);
   }, []);
 
-  // Data refresh — prefer backend, fall back to DB blobs, then localStorage
+  // Data refresh — load all from backend API
   const refreshData = useCallback(async () => {
     try {
       const data = await fetchAllData();
-      if (data.messages && data.messages.length > 0) {
-        const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations')));
-        setMessages(data.messages.filter(m => !deleted.has(m.id)));
-      }
+      const deleted = deletedConversationIds;
+
+      setMessages(prev => {
+        const localOnly = prev.filter(m => m.id?.startsWith('msg-'));
+        const backendThreads = (data.messages || []).filter(t => !deleted.has(t.id));
+        const existingIds = new Set(localOnly.map(m => m.id));
+        const merged = [...localOnly];
+        for (const t of backendThreads) {
+          if (!existingIds.has(t.id)) merged.push(t);
+          existingIds.add(t.id);
+        }
+        // Restore persisted unread state from localStorage
+        try {
+          const stored = JSON.parse(localStorage.getItem('axion_unread_messages') || '{}');
+          return merged.map(m => ({ ...m, unread: m.unread || !!stored[m.id] }));
+        } catch { return merged; }
+      });
+
       if (data.complaints && data.complaints.length > 0) setComplaints(data.complaints);
-      if (data.students && data.students.length > 0) {
-        try { const cached = localStorage.getItem('axion_students_cache'); if (!cached || JSON.parse(cached).length === 0) { setStudents(data.students); localStorage.setItem('axion_students_cache', JSON.stringify(data.students)); } } catch { setStudents(data.students); }
-      }
-      if (data.schools && data.schools.length > 0) setSchools(data.schools);
+      if (data.students && data.students.length > 0) setStudents(data.students);
       if (data.activities && data.activities.length > 0) setActivities(data.activities);
-      if (data.fees && data.fees.length > 0) setFees(data.fees);
+      if (data.attendance && data.attendance.records && Object.keys(data.attendance.records).length > 0) {
+        const backend = data.attendance.records;
+        const dateKey = data.attendance.date || new Date().toISOString().slice(0, 10);
+        setAttendanceData(prev => ({ ...prev, [dateKey]: backend }));
+      }
+      requestJSON(`${API_BASE}/data/axion_daily_logs`).then(blob => {
+        if (blob && blob.data) setDailyLogs(blob.data);
+      }).catch(() => {});
     } catch (e) {
-      console.warn('Backend API unavailable, trying DB blobs:', e.message);
-      // Try to restore from DB blobs (persisted in MongoDB)
-      const restored = await syncAllFromDB();
-      if (restored > 0) console.log(`Restored ${restored} data blobs from DB`);
-      // Fall back to localStorage
-      try { const v = localStorage.getItem('axion_messages'); if (v) { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(v).filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants))); } } catch {}
-      try { const v = localStorage.getItem('axion_students_cache'); if (v) setStudents(JSON.parse(v)); } catch {}
-      try { const v = localStorage.getItem('axion_complaints'); if (v) setComplaints(JSON.parse(v)); } catch {}
-      try { const v = localStorage.getItem('axion_fees'); if (v) setFees(JSON.parse(v)); } catch {}
-      try { const v = localStorage.getItem('axion_activities'); if (v) setActivities(JSON.parse(v)); } catch {}
-      try { const v = localStorage.getItem('axion_schools'); if (v) setSchools(JSON.parse(v)); } catch {}
+      console.warn('Backend unavailable:', e.message);
     }
-  }, []);
+  }, [deletedConversationIds]);
+
+  const refreshDataRef = useRef(refreshData);
+  refreshDataRef.current = refreshData;
 
   // Session restore on mount — only sets role/user from saved profile, does NOT auto-login
   useEffect(() => {
@@ -197,19 +272,7 @@ export function AppProvider({ children }) {
     }
   }, []);
 
-  // Cross-tab real-time sync via localStorage events
-  useEffect(() => {
-    const handleStorage = (e) => {
-      if (e.key === 'axion_messages') { try { const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations'))); setMessages(JSON.parse(e.newValue || '[]').filter(m => !deleted.has(m.id) && m.participants && Array.isArray(m.participants))); } catch {} }
-      if (e.key === 'axion_attendance') { try { setAttendanceData(JSON.parse(e.newValue || '{}')); } catch {} }
-      if (e.key === 'axion_students_cache') { try { setStudents(JSON.parse(e.newValue || '[]')); } catch {} }
-      if (e.key === 'axion_awarded_rewards') { try { setAwardedRewards(JSON.parse(e.newValue || '[]')); } catch {} }
-      if (e.key === 'axion_complaints') { try { setComplaints(JSON.parse(e.newValue || '[]')); } catch {} }
-      if (e.key === 'axion_announcements') { try { setAnnouncements(JSON.parse(e.newValue || '[]')); } catch {} }
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  // noop
 
   // Auto-refresh when tab becomes visible
   useEffect(() => {
@@ -245,15 +308,6 @@ export function AppProvider({ children }) {
     setIsLoggedIn(true);
   }, [refreshData, addSavedProfile]);
 
-  // Persist data to localStorage + sync to MongoDB
-  useEffect(() => { if (messages.length > 0) try { localStorage.setItem('axion_messages', JSON.stringify(messages)); queueSyncToDB('axion_messages', messages); } catch {} }, [messages]);
-  useEffect(() => { try { localStorage.setItem('axion_current_msg_id', currentMsgId); } catch {} }, [currentMsgId]);
-  useEffect(() => { if (students.length > 0) try { localStorage.setItem('axion_students_cache', JSON.stringify(students)); queueSyncToDB('axion_students_cache', students); } catch {} }, [students]);
-  useEffect(() => { if (complaints.length > 0) try { localStorage.setItem('axion_complaints', JSON.stringify(complaints)); queueSyncToDB('axion_complaints', complaints); } catch {} }, [complaints]);
-  useEffect(() => { try { localStorage.setItem('axion_fees', JSON.stringify(fees)); queueSyncToDB('axion_fees', fees); } catch {} }, [fees]);
-  useEffect(() => { try { localStorage.setItem('axion_activities', JSON.stringify(activities)); queueSyncToDB('axion_activities', activities); } catch {} }, [activities]);
-  useEffect(() => { try { localStorage.setItem('axion_schools', JSON.stringify(schools)); queueSyncToDB('axion_schools', schools); } catch {} }, [schools]);
-
   const doRegister = useCallback(async (name, email, password, role) => {
     await apiRegister(name, email, password, role);
   }, []);
@@ -271,331 +325,296 @@ export function AppProvider({ children }) {
   const navTo = useCallback((pid) => {
     setCurrentPage(pid);
     setCurrentMsgId(null);
-    if (pid === 'fees') {
-      loadFeesData();
-    }
   }, []);
 
   // API helpers for data operations
   const submitStudent = useCallback(async (payload) => {
-    const student = {
-      id: 'std-' + Date.now(), name: `${payload.firstName} ${payload.lastName}`,
-      init: ((payload.firstName?.[0] || '') + (payload.lastName?.[0] || '')).toUpperCase() || '??',
-      age: payload.age || 5, class: payload.className || 'Room 3 — Sunflower Class',
-      pts: 0, pct: 0, rank: students.length + 1,
-      bg: '#E0F2FE', col: '#0E7490',
-      parentName: payload.parentName || null, parentEmail: payload.parentEmail || null,
-    };
-    setStudents([...students, student]);
-    showToast('Student registered successfully!');
     closeModal();
     try {
       await requestJSON(`${API_BASE}/students`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await refreshData();
+      showToast('Student registered successfully!');
     } catch (e) {
-      console.warn('Backend sync failed:', e.message);
+      const student = {
+        id: 'std-' + Date.now(), name: `${payload.firstName} ${payload.lastName}`,
+        init: ((payload.firstName?.[0] || '') + (payload.lastName?.[0] || '')).toUpperCase() || '??',
+        age: payload.age || 5, class: payload.className || 'Room 3 — Sunflower Class',
+        pts: 0, pct: 0, rank: students.length + 1,
+        bg: '#E0F2FE', col: '#0E7490',
+        parentName: payload.parentName || null, parentEmail: payload.parentEmail || null,
+      };
+      setStudents([...students, student]);
+      showToast('Student registered (offline)');
     }
-  }, [students, showToast, closeModal]);
+  }, [students, showToast, closeModal, refreshData]);
 
   const submitAward = useCallback(async (payload) => {
     const selected = students.find(s => s.name === payload.studentId) || students[0];
-    if (selected) {
-      const pts = payload.points || 5;
-      selected.pts = (selected.pts || 0) + pts;
-      selected.pct = Math.min(100, (selected.pct || 0) + 2);
-      setStudents([...students]);
-      const activity = { id: 'act-' + Date.now(), title: `Awarded ${pts} points to ${selected.name}`, desc: payload.source || 'Teacher Award', time: 'Just now', timeLabel: 'Just now' };
-      setActivities([activity, ...activities]);
-    }
-    showToast('Points awarded successfully!');
     closeModal();
     try {
       await requestJSON(`${API_BASE}/students/${selected?.id}/award`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await refreshData();
+      showToast('Points awarded successfully!');
     } catch (e) {
-      console.warn('Backend sync failed:', e.message);
+      if (selected) {
+        const pts = payload.points || 5;
+        selected.pts = Math.max(0, (selected.pts || 0) + pts);
+        setStudents([...students]);
+        const activity = { id: 'act-' + Date.now(), title: `Awarded ${pts} points to ${selected.name}`, desc: payload.source || 'Teacher Award', time: 'Just now', timeLabel: 'Just now' };
+        setActivities([activity, ...activities]);
+      }
+      showToast('Points awarded (offline)');
     }
-  }, [students, activities, showToast, closeModal]);
+  }, [students, activities, showToast, closeModal, refreshData]);
 
   const submitComplaint = useCallback(async (payload) => {
     if (!payload.subject || !payload.subject.trim()) {
       showToast('Subject is required');
       return;
     }
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const complaint = {
-      id: 'comp-' + Date.now(),
-      title: payload.subject, desc: payload.details || 'No details provided.',
-      status: 'open', type: 'general', priority: (payload.priority || 'Medium').toLowerCase(),
-      student: payload.student || null, by: user?.name || currentRole, time: now,
-      replies: [],
-    };
-    setComplaints([complaint, ...complaints]);
-    showToast('Complaint filed successfully!');
     closeModal();
     try {
-      await requestJSON(`${API_BASE}/complaints`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await requestJSON(`${API_BASE}/complaints`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: payload.subject, desc: payload.details || '', priority: payload.priority, by: user?.name || currentRole, type: 'OTHER' }) });
+      await refreshData();
+      showToast('Complaint filed successfully!');
     } catch (e) {
-      console.warn('Backend sync failed:', e.message);
+      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const complaint = {
+        id: 'comp-' + Date.now(),
+        title: payload.subject, desc: payload.details || 'No details provided.',
+        status: 'open', type: 'general', priority: (payload.priority || 'Medium').toLowerCase(),
+        student: payload.student || null, by: user?.name || currentRole, time: now,
+        replies: [],
+      };
+      setComplaints([complaint, ...complaints]);
+      showToast('Complaint filed (offline)');
     }
-  }, [complaints, user, currentRole, showToast, closeModal]);
+  }, [complaints, user, currentRole, showToast, closeModal, refreshData]);
 
   const submitEditStudent = useCallback(async (id, payload) => {
-    const s = students.find(x => x.id === id);
-    if (s) {
-      s.name = `${payload.firstName} ${payload.lastName}`;
-      s.init = `${payload.firstName[0]}${payload.lastName[0]}`.toUpperCase();
-      s.class = payload.className;
-      if (payload.age) s.age = payload.age;
-      if (payload.parentName !== undefined) s.parentName = payload.parentName || null;
-      if (payload.parentEmail !== undefined) s.parentEmail = payload.parentEmail || null;
-      if (payload.medicalNotes !== undefined) s.medicalNotes = payload.medicalNotes || null;
-      setStudents([...students]);
-    }
     closeModal();
-    showToast('✓ Student updated');
     try {
       await requestJSON(`${API_BASE}/students/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      await refreshData();
+      showToast('✓ Student updated');
     } catch (e) {
-      console.warn('Edit student sync failed:', e.message);
+      const s = students.find(x => x.id === id);
+      if (s) {
+        s.name = `${payload.firstName} ${payload.lastName}`;
+        s.init = `${payload.firstName[0]}${payload.lastName[0]}`.toUpperCase();
+        s.class = payload.className;
+        if (payload.age) s.age = payload.age;
+        if (payload.parentName !== undefined) s.parentName = payload.parentName || null;
+        if (payload.parentEmail !== undefined) s.parentEmail = payload.parentEmail || null;
+        if (payload.medicalNotes !== undefined) s.medicalNotes = payload.medicalNotes || null;
+        setStudents([...students]);
+      }
+      showToast('✓ Student updated (offline)');
     }
-  }, [students, showToast, closeModal]);
+  }, [students, showToast, closeModal, refreshData]);
 
   const deleteStudent = useCallback(async (id, name) => {
     closeModal();
     const confirmed = window.confirm(`Remove ${name} from the system? This cannot be undone.`);
     if (!confirmed) return;
-    setStudents(students.filter(x => x.id !== id));
-    showToast(`🗑 ${name} removed`);
     try {
       await requestJSON(`${API_BASE}/students/${id}`, { method: 'DELETE' });
+      await refreshData();
+      showToast(`🗑 ${name} removed`);
     } catch (e) {
-      console.warn('Delete student sync failed:', e.message);
+      setStudents(students.filter(x => x.id !== id));
+      showToast(`🗑 ${name} removed (offline)`);
     }
-  }, [students, showToast, closeModal]);
+  }, [students, showToast, closeModal, refreshData]);
 
   const saveParentDetails = useCallback(async (id, parentName, parentEmail) => {
-    const s = students.find(x => x.id === id);
-    if (s) {
-      s.parentName = parentName || null;
-      s.parentEmail = parentEmail || null;
-      setStudents([...students]);
-    }
     closeModal();
-    showToast('✓ Parent details updated');
     try {
       await requestJSON(`${API_BASE}/students/${id}/parent`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentName, parentEmail }) });
+      await refreshData();
+      showToast('✓ Parent details updated');
     } catch (e) {
-      console.warn('Parent update failed:', e.message);
+      const s = students.find(x => x.id === id);
+      if (s) { s.parentName = parentName || null; s.parentEmail = parentEmail || null; setStudents([...students]); }
+      showToast('✓ Parent details updated (offline)');
     }
-  }, [students, showToast, closeModal]);
+  }, [students, showToast, closeModal, refreshData]);
 
   const selectMyChild = useCallback(async (studentId) => {
     const storageKey = 'axion_child_id_default';
-    const prevId = localStorage.getItem(storageKey);
-    if (prevId && prevId !== studentId) {
-      const prev = students.find(x => x.id === prevId);
-      if (prev) { prev.parentName = null; prev.parentEmail = null; setStudents([...students]); }
-      requestJSON(`${API_BASE}/students/${prevId}/parent`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentName: null, parentEmail: null }) }).catch(() => {});
-    }
     localStorage.setItem(storageKey, studentId);
     setSelectedChildId(studentId);
-    const s = students.find(x => x.id === studentId);
-    if (s) {
-      const name = document.getElementById('user-name')?.textContent || '';
-      const email = document.getElementById('user-name')?.dataset?.email || '';
-      if (name) s.parentName = name;
-      if (email) s.parentEmail = email;
-      setStudents([...students]);
-    }
     closeModal();
-    showToast('✓ Child profile updated');
+    const parentName = user?.name || '';
+    const parentEmail = user?.email || '';
     try {
-      await requestJSON(`${API_BASE}/students/${studentId}/parent`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentName: s?.parentName || undefined, parentEmail: s?.parentEmail || undefined }) });
-      const data = await fetchAllData();
-      if (data.students?.length) setStudents(data.students);
-    } catch (e) {
-      console.warn('Parent link sync failed:', e.message);
-    }
-  }, [students, showToast, closeModal]);
-
-  const registerSchool = useCallback(async (payload) => {
-    if (!payload.name) { showToast('School name is required.'); return; }
-    try {
-      await requestJSON(`${API_BASE}/schools`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      showToast('School registered successfully!');
+      await requestJSON(`${API_BASE}/students/${studentId}/parent`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentName, parentEmail }) });
       await refreshData();
+      showToast('✓ Child profile updated');
     } catch (e) {
-      showToast('Error: ' + e.message);
+      const s = students.find(x => x.id === studentId);
+      if (s) { s.parentName = parentName || null; s.parentEmail = parentEmail || null; setStudents([...students]); }
+      showToast('✓ Child profile updated (offline)');
     }
-  }, [showToast, refreshData]);
-
-  const submitEditSchool = useCallback(async (id, payload) => {
-    const s = schools.find(x => x.id === id);
-    if (s) {
-      s.name = payload.name;
-      if (payload.location !== undefined) s.location = payload.location || 'N/A';
-      if (payload.principalName !== undefined) s.principalName = payload.principalName;
-      if (payload.contactEmail !== undefined) s.contactEmail = payload.contactEmail;
-      if (payload.classrooms !== undefined) s.rooms = payload.classrooms;
-      if (payload.teachers !== undefined) s.teachers = payload.teachers;
-      if (payload.phone !== undefined) s.phone = payload.phone;
-      if (payload.address !== undefined) s.address = payload.address;
-      if (payload.notes !== undefined) s.notes = payload.notes;
-      setSchools([...schools]);
-    }
-    closeModal();
-    showToast('✓ School updated');
-    try {
-      await requestJSON(`${API_BASE}/schools/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    } catch (e) {
-      showToast('Saved locally — sync failed: ' + e.message);
-    }
-  }, [schools, showToast, closeModal]);
+  }, [students, showToast, closeModal, user, refreshData]);
 
   const resolveComplaint = useCallback(async (id) => {
-    const c = complaints.find(x => x.id === id);
-    if (!c) return;
-    c.status = 'resolved';
-    setComplaints([...complaints]);
-    showToast('✓ Complaint resolved');
     try {
       await requestJSON(`${API_BASE}/complaints/${id}/resolve`, { method: 'PATCH' });
+      await refreshData();
+      showToast('✓ Complaint resolved');
     } catch (e) {
-      console.warn('Resolve backend sync failed:', e.message);
+      const c = complaints.find(x => x.id === id);
+      if (c) { c.status = 'resolved'; setComplaints([...complaints]); }
+      showToast('✓ Complaint resolved (offline)');
     }
-  }, [complaints, showToast]);
+  }, [complaints, showToast, refreshData]);
 
   const escalateComplaint = useCallback(async (id) => {
-    const c = complaints.find(x => x.id === id);
-    if (!c) return;
-    if (escalatedIds.has(id) || c.status === 'escalated') {
-      showToast('Already escalated');
-      return;
-    }
-    c.priority = 'high';
-    c.status = 'escalated';
-    setEscalatedIds(new Set([...escalatedIds, id]));
-    setComplaints([...complaints]);
-      showToast('Complaint escalated — marked as High priority');
+    if (escalatedIds.has(id)) { showToast('Already escalated'); return; }
     try {
       await requestJSON(`${API_BASE}/complaints/${id}/escalate`, { method: 'PATCH' });
+      setEscalatedIds(new Set([...escalatedIds, id]));
+      await refreshData();
+      showToast('Complaint escalated');
     } catch (e) {
-      console.warn('Escalate backend sync failed:', e.message);
+      const c = complaints.find(x => x.id === id);
+      if (c) { c.priority = 'high'; c.status = 'escalated'; setComplaints([...complaints]); }
+      setEscalatedIds(new Set([...escalatedIds, id]));
+      showToast('Complaint escalated (offline)');
     }
-  }, [complaints, escalatedIds, showToast]);
+  }, [complaints, escalatedIds, showToast, refreshData]);
 
   const submitTicketReply = useCallback(async (id, text) => {
     if (!text) return;
-    const c = complaints.find(x => x.id === id);
-    if (!c || c.status === 'resolved') return;
-    const userName = user?.name || currentRole;
-    const newReply = { id: 'temp-' + Date.now(), authorName: userName, authorRole: currentRole, text, time: 'Now' };
-    if (!c.replies) c.replies = [];
-    c.replies.push(newReply);
-    if (currentRole === 'teacher' || currentRole === 'admin') {
-      if (c.status === 'open' || c.status === 'escalated') c.status = 'in-progress';
+    // Local complaints (comp- prefix) don't exist on backend — handle reply locally
+    if (typeof id === 'string' && id.startsWith('comp-')) {
+      const c = complaints.find(x => x.id === id);
+      if (!c || c.status === 'resolved') return;
+      const userName = user?.name || currentRole;
+      const newReply = { id: 'temp-' + Date.now(), authorName: userName, authorRole: currentRole, text, time: 'Now' };
+      if (!c.replies) c.replies = [];
+      c.replies.push(newReply);
+      c.status = 'in-progress';
+      setComplaints([...complaints]);
+      return;
     }
-    setComplaints([...complaints]);
+    replyInFlightRef.current = true;
     try {
-      await requestJSON(`${API_BASE}/complaints/${id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      const result = await requestJSON(`${API_BASE}/complaints/${id}/reply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
+      const c2 = complaints.find(x => x.id === id);
+      if (c2 && c2.status !== 'resolved') {
+        if (!c2.replies) c2.replies = [];
+        c2.replies.push({ id: result.reply.id, authorName: result.reply.authorName, authorRole: result.reply.authorRole, text: result.reply.text, time: result.reply.time });
+        if (c2.status === 'open') c2.status = 'in-progress';
+        setComplaints([...complaints]);
+      }
     } catch (e) {
-      console.warn('Reply backend sync failed:', e.message);
+      // API failed — add a local-only reply so user still sees it
+      const c2 = complaints.find(x => x.id === id);
+      if (c2 && c2.status !== 'resolved') {
+        if (!c2.replies) c2.replies = [];
+        c2.replies.push({ id: 'local-' + Date.now(), authorName: user?.name || currentRole, authorRole: currentRole, text, time: 'Now' });
+        if (c2.status === 'open') c2.status = 'in-progress';
+        setComplaints([...complaints]);
+      }
+      console.error('Reply API failed:', e.message);
+    } finally {
+      replyInFlightRef.current = false;
     }
   }, [complaints, user, currentRole]);
 
-  const loadFeesData = useCallback(async () => {
-    try {
-      const data = await requestJSON(`${API_BASE}/fees`);
-      if (data.items && data.items.length > 0) setFees(data.items);
-    } catch (e) {
-      console.warn('Could not load fees from backend:', e.message);
-    }
-  }, []);
-
-  const submitAddFee = useCallback(async (payload) => {
-    try {
-      await requestJSON(`${API_BASE}/fees`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      showToast('Fee record added!');
-      closeModal();
-      await loadFeesData();
-    } catch (e) {
-      showToast('Error: ' + e.message);
-    }
-  }, [showToast, closeModal, loadFeesData]);
-
-  const submitRecordPayment = useCallback(async (id, amountPaid, note) => {
-    const fee = fees.find(f => f.id === id);
-    if (fee) {
-      if (!fee.payments) fee.payments = [];
-      fee.payments.push({ amount: amountPaid, note: note || '', date: new Date().toISOString(), by: user?.name || 'Staff' });
-      fee.amountPaid = (fee.amountPaid || 0) + amountPaid;
-      fee.balance = fee.amount - fee.amountPaid;
-      if (fee.balance <= 0) { fee.balance = 0; fee.status = 'paid'; fee.paidAt = new Date().toISOString(); }
-      else if (fee.amountPaid > 0) fee.status = 'partial';
-      setFees([...fees]);
-    }
-    try {
-      await requestJSON(`${API_BASE}/fees/${id}/pay`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amountPaid, note: note || undefined }) });
-    } catch (e) { console.warn('Payment sync failed:', e.message); }
-    showToast('Payment recorded!');
-    closeModal();
-  }, [fees, user, showToast, closeModal]);
-
-  const submitSendReminder = useCallback(async (id, message) => {
-    try {
-      const result = await requestJSON(`${API_BASE}/fees/${id}/remind`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message || undefined }) });
-      showToast(`Reminder sent to ${result.to}`);
-      closeModal();
-    } catch (e) {
-      showToast('Error: ' + e.message);
-    }
-  }, [showToast, closeModal]);
-
-  const deleteFeeRecord = useCallback(async (id) => {
-    if (!window.confirm('Delete this fee record? This cannot be undone.')) return;
-    try {
-      await requestJSON(`${API_BASE}/fees/${id}`, { method: 'DELETE' });
-      showToast('Fee record deleted.');
-      setFees(fees.filter(f => f.id !== id));
-    } catch (e) {
-      showToast('Error: ' + e.message);
-    }
-  }, [fees, showToast]);
-
   const sendMsg = useCallback(async (text, fileData) => {
     if ((!text && !fileData) || !currentMsgId) return;
-    setMessages(prev => prev.map(m => {
-      if (m.id !== currentMsgId) return m;
-      const entry = { from: 'out', text: text || '', time: 'Now', authorEmail: user?.email, authorId: user?.id };
-      if (fileData) {
-        entry.fileName = fileData.name;
-        entry.fileType = fileData.type;
-        entry.fileSize = fileData.size;
-        const fileKey = 'file_' + Date.now() + '_' + fileData.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    let resolvedThreadId = currentMsgId;
+
+    // If this is still a local temp thread, create it on the backend first
+    if (currentMsgId?.startsWith('msg-')) {
+      const tempThread = messages.find(m => m.id === currentMsgId);
+      const myId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
+      const recipientId = tempThread?.participants?.find(id => id !== myId)
+        || tempThread?.senderId;
+      const recipientEmail = tempThread?.participantEmails?.[recipientId] || '';
+      if (recipientId) {
         try {
-          const cache = JSON.parse(localStorage.getItem('axion_file_data') || '{}');
-          cache[fileKey] = fileData.dataUrl;
-          localStorage.setItem('axion_file_data', JSON.stringify(cache));
-          queueSyncToDB('axion_file_data', cache);
-        } catch {}
-        entry.fileKey = fileKey;
-        entry.text = text || `[File: ${fileData.name}]`;
+          const result = await requestJSON(`${API_BASE}/messages/new`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recipientId, recipientEmail }),
+          });
+          const realId = result.threadId || result.item?.id;
+          if (realId) {
+            resolvedThreadId = realId;
+            setMessages(prev => prev.map(m => m.id === currentMsgId ? { ...m, id: realId } : m));
+            setCurrentMsgId(realId);
+          }
+        } catch (e) {
+          console.warn('Failed to create thread on backend before send:', e.message);
+        }
       }
-      return { ...m, chat: [...(m.chat || []), entry], preview: entry.text, time: 'Now', unread: false };
+    }
+
+    const msgText = fileData ? (text || `[File: ${fileData.name}]`) : text;
+    const entry = { from: 'out', from_dir: 'out', text: msgText, time: 'Now', authorEmail: user?.email, authorId: user?.id };
+
+    if (fileData) {
+      entry.fileName = fileData.name;
+      entry.fileType = fileData.type;
+      entry.fileSize = fileData.size;
+      const fileKey = 'file_' + Date.now() + '_' + fileData.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      entry.fileKey = fileKey;
+    }
+
+    // Optimistic local update — show message immediately on sender side
+    setMessages(prev => prev.map(m => {
+      if (m.id !== resolvedThreadId) return m;
+      const updated = { ...m };
+      if (!updated.participants && updated.participantIds) {
+        updated.participants = updated.participantIds;
+      }
+      if (!updated.participantNames && updated.sender) {
+        const cId = updated.participants?.find(id => id !== user?.id) || updated.senderId || '';
+        updated.participantNames = { [user?.id || 'me']: user?.name || 'Me', [cId]: updated.sender || 'Unknown' };
+        updated.participantRoles = { [user?.id || 'me']: currentRole?.toUpperCase() || 'USER', [cId]: updated.role?.toUpperCase() || 'CONTACT' };
+      }
+      return { ...updated, chat: [...(updated.chat || []), entry], preview: msgText, time: 'Now', unread: false };
     }));
     showToast('Message sent');
-    showToast('Message sent');
-    try {
-      await requestJSON(`${API_BASE}/messages/${currentMsgId}/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from_dir: 'out', text: text || '', time: 'Now' }) });
-    } catch (e) {
-      console.warn('Message send sync failed:', e.message);
+
+    // Save to backend — the server controller emits the socket event to the recipient.
+    // We do NOT emit from the client side to avoid double delivery.
+    if (!resolvedThreadId?.startsWith('msg-')) {
+      try {
+        const result = await requestJSON(`${API_BASE}/messages/${resolvedThreadId}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from_dir: 'out', text: msgText, time: 'Now', authorEmail: user?.email, authorId: user?.id || user?._id }),
+        });
+        // Capture the MongoDB _id from the backend response and attach it to the local entry
+        if (result?.item?.id) {
+          setMessages(prev => prev.map(m => {
+            if (m.id !== resolvedThreadId) return m;
+            const chat = [...(m.chat || [])];
+            const last = chat[chat.length - 1];
+            if (last && !last.chatId) {
+              chat[chat.length - 1] = { ...last, chatId: result.item.id };
+            }
+            return { ...m, chat };
+          }));
+        }
+      } catch (e) {
+        console.warn('Failed to persist message to backend:', e.message);
+      }
     }
-  }, [messages, currentMsgId, showToast]);
+  }, [messages, currentMsgId, showToast, user, currentRole]);
 
   const editMessage = useCallback(async (msgId, chatIdx, newText) => {
     setMessages(messages.map(m => m.id === msgId ? { ...m, chat: m.chat.map((c, i) => i === chatIdx ? { ...c, text: newText, edited: true } : c) } : m));
     showToast('Message edited');
     try {
-      await requestJSON(`${API_BASE}/messages/${msgId}/chat/${chatIdx}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newText }) });
+      const entry = messages.find(m => m.id === msgId)?.chat?.[chatIdx];
+      const backendId = entry?.chatId || chatIdx;
+      await requestJSON(`${API_BASE}/messages/${msgId}/chat/${backendId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: newText }) });
     } catch (e) {
       console.warn('Edit sync failed:', e.message);
     }
@@ -605,35 +624,27 @@ export function AppProvider({ children }) {
     setMessages(messages.map(m => m.id === msgId ? { ...m, chat: m.chat.filter((_, i) => i !== chatIdx) } : m));
     showToast('Message deleted');
     try {
-      await requestJSON(`${API_BASE}/messages/${msgId}/chat/${chatIdx}`, { method: 'DELETE' });
+      const entry = messages.find(m => m.id === msgId)?.chat?.[chatIdx];
+      const backendId = entry?.chatId || chatIdx;
+      await requestJSON(`${API_BASE}/messages/${msgId}/chat/${backendId}`, { method: 'DELETE' });
     } catch (e) {
       console.warn('Delete sync failed:', e.message);
     }
   }, [messages, showToast]);
 
   const deleteConversation = useCallback(async (msgId) => {
-    if (!window.confirm('Delete this entire conversation? This cannot be undone.')) return;
-    setDeletedConversationIds(prev => {
-      const next = new Set(prev);
-      next.add(msgId);
-      localStorage.setItem('axion_deleted_conversations', JSON.stringify([...next]));
-      queueSyncToDB('axion_deleted_conversations', [...next]);
-      return next;
-    });
+    setDeletedConversationIds(prev => new Set([...prev, msgId]));
     setMessages(messages.filter(m => m.id !== msgId));
     if (currentMsgId === msgId) setCurrentMsgId(messages.find(m => m.id !== msgId)?.id || null);
-    showToast('Conversation deleted');
-    try {
-      await requestJSON(`${API_BASE}/messages/${msgId}`, { method: 'DELETE' });
-    } catch (e) {
-      console.warn('Delete conversation sync failed:', e.message);
+    if (!msgId?.startsWith('msg-')) {
+      try {
+        await requestJSON(`${API_BASE}/messages/${msgId}`, { method: 'DELETE' });
+      } catch {}
     }
-  }, [messages, currentMsgId, showToast]);
+  }, [messages, currentMsgId]);
 
-  // Teacher tags — stored in localStorage, pushed to student profile
-  const [teacherTags, setTeacherTags] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_teacher_tags')) || {}; } catch { return {}; }
-  });
+  // Teacher tags
+  const [teacherTags, setTeacherTags] = useState({});
 
   const addTeacherTag = useCallback((studentId, tag) => {
     const updated = { ...teacherTags };
@@ -641,7 +652,6 @@ export function AppProvider({ children }) {
     if (!updated[studentId].includes(tag)) {
       updated[studentId] = [...updated[studentId], tag];
       setTeacherTags(updated);
-      try { localStorage.setItem('axion_teacher_tags', JSON.stringify(updated)); queueSyncToDB('axion_teacher_tags', updated); } catch {}
       showToast(`Tagged student: ${tag}`);
     }
   }, [teacherTags, showToast]);
@@ -652,34 +662,36 @@ export function AppProvider({ children }) {
       updated[studentId] = updated[studentId].filter(t => t !== tag);
       if (updated[studentId].length === 0) delete updated[studentId];
       setTeacherTags(updated);
-      try { localStorage.setItem('axion_teacher_tags', JSON.stringify(updated)); queueSyncToDB('axion_teacher_tags', updated); } catch {}
     }
   }, [teacherTags]);
 
-  // Teacher classroom assignments — stored in localStorage, keyed by teacher email
-  const [classList, setClassList] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_class_list')) || []; } catch { return []; }
-  });
+  // Teacher classroom assignments
+  const [classList, setClassList] = useState([]);
 
   const addClass = useCallback((name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     setClassList(prev => {
       if (prev.includes(trimmed)) return prev;
-      const next = [...prev, trimmed].sort();
-      localStorage.setItem('axion_class_list', JSON.stringify(next));
-      queueSyncToDB('axion_class_list', next);
-      return next;
+      return [...prev, trimmed].sort();
     });
   }, []);
 
   const removeClass = useCallback((name) => {
-    setClassList(prev => {
-      const next = prev.filter(c => c !== name);
-      localStorage.setItem('axion_class_list', JSON.stringify(next));
-      queueSyncToDB('axion_class_list', next);
-      return next;
+    setStudents(prev => prev.map(s => s.class === name ? { ...s, class: '' } : s));
+    setTeacherClassrooms(prev => {
+      const updated = {};
+      for (const [email, classes] of Object.entries(prev)) {
+        if (classes && classes.includes(name)) {
+          const filtered = classes.filter(c => c !== name);
+          if (filtered.length > 0) updated[email] = filtered;
+        } else {
+          updated[email] = classes;
+        }
+      }
+      return updated;
     });
+    setClassList(prev => prev.filter(c => c !== name));
   }, []);
 
   const getAllClasses = useCallback(() => {
@@ -687,72 +699,94 @@ export function AppProvider({ children }) {
     return [...new Set([...classList, ...fromStudents])].sort();
   }, [classList, students]);
 
-  const [teacherClassrooms, setTeacherClassrooms] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_teacher_classrooms')) || {}; } catch { return {}; }
-  });
+  const [teacherClassrooms, setTeacherClassrooms] = useState({});
 
   const saveTeacherClassrooms = useCallback((data) => {
     setTeacherClassrooms(data);
-    try { localStorage.setItem('axion_teacher_classrooms', JSON.stringify(data)); queueSyncToDB('axion_teacher_classrooms', data); } catch {}
   }, []);
 
   // Get classrooms a teacher is assigned to; defaults to all if none set
   const getTeacherClassrooms = useCallback((email) => {
-    const assigned = teacherClassrooms[email];
-    if (assigned && assigned.length > 0) return assigned;
+    if (!email) return null;
+    const lowerEmail = email.toLowerCase();
+    const key = Object.keys(teacherClassrooms).find(k => k.toLowerCase() === lowerEmail);
+    if (key) {
+      const assigned = teacherClassrooms[key];
+      if (assigned && assigned.length > 0) return assigned;
+    }
     return null; // null = all classrooms
   }, [teacherClassrooms]);
 
-  const startChatWith = useCallback(async (recipientId, recipientName, recipientRole) => {
+  const startChatWith = useCallback(async (recipientId, recipientName, recipientRole, contactEmail) => {
     closeModal();
     const currentUserId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
+
+    // Check if a thread with this recipient already exists in local state
+    const existing = messages.find(m => {
+      const parts = m.participants || m.participantIds || [];
+      return parts.includes(currentUserId) && parts.includes(recipientId);
+    });
+    if (existing) {
+      setCurrentMsgId(existing.id);
+      showToast(`Chat with ${recipientName} opened`);
+      return;
+    }
+
+    // Create a temporary local thread so the UI responds immediately
+    const tempId = 'msg-' + Date.now();
     const newMsg = {
-      id: 'msg-' + Date.now(),
+      id: tempId,
       participants: [currentUserId, recipientId],
+      participantIds: [currentUserId, recipientId],
       participantNames: {
         [currentUserId]: user?.name || 'Me',
-        [recipientId]: recipientName
+        [recipientId]: recipientName,
       },
       participantRoles: {
         [currentUserId]: currentRole?.toUpperCase() || 'USER',
-        [recipientId]: recipientRole || 'Contact'
+        [recipientId]: recipientRole || 'Contact',
+      },
+      participantEmails: {
+        [currentUserId]: user?.email || '',
+        [recipientId]: contactEmail || '',
       },
       participantAvis: {
         [currentUserId]: (user?.name || 'Me').substring(0, 2).toUpperCase(),
-        [recipientId]: recipientName.substring(0, 2).toUpperCase()
+        [recipientId]: recipientName.substring(0, 2).toUpperCase(),
       },
-      aColor: 'var(--sky-pale)',
-      aText: 'var(--sky)',
+      contactEmail: contactEmail || '',
+      aColor: (recipientRole === 'TEACHER' ? 'var(--sky-pale)' : recipientRole === 'ADMIN' ? 'var(--primary-pale)' : 'var(--coral-pale)'),
+      aText: (recipientRole === 'TEACHER' ? 'var(--sky)' : recipientRole === 'ADMIN' ? 'var(--primary)' : 'var(--coral)'),
       preview: 'No messages yet. Say hello!',
       time: 'Now',
       unread: false,
       chat: [],
-      senderId: recipientId, // legacy fallback
-      sender: recipientName, // legacy fallback
-      role: recipientRole || 'Contact', // legacy fallback
-      avi: recipientName.substring(0, 2).toUpperCase(), // legacy fallback
+      senderId: recipientId,
+      sender: recipientName,
+      role: recipientRole || 'Contact',
+      avi: recipientName.substring(0, 2).toUpperCase(),
     };
-    setMessages(prev => {
-      const merged = [newMsg, ...prev];
-      showToast(`Chat with ${recipientName} opened`);
-      setCurrentMsgId(newMsg.id);
-      return merged;
-    });
+
+    setMessages(prev => [newMsg, ...prev]);
+    setCurrentMsgId(tempId);
+    showToast(`Chat with ${recipientName} opened`);
+
+    // Persist the thread on the backend and swap the temp ID for the real one
     try {
-      await requestJSON(`${API_BASE}/messages/new`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ recipientId, time: 'Now' }) });
-      const data = await requestJSON(`${API_BASE}/messages`);
-      if (data.items?.length) {
-        setMessages(prev => {
-          const serverSenderIds = new Set(data.items.map(m => m.senderId).filter(Boolean));
-          const matched = data.items.find(m => m.senderId === recipientId);
-          if (matched) setCurrentMsgId(matched.id);
-          return [...prev.filter(m => !serverSenderIds.has(m.senderId)), ...data.items];
-        });
+      const result = await requestJSON(`${API_BASE}/messages/new`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId, recipientEmail: contactEmail }),
+      });
+      const realThreadId = result.threadId || result.item?.id;
+      if (realThreadId && realThreadId !== tempId) {
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, id: realThreadId } : m));
+        setCurrentMsgId(realThreadId);
       }
     } catch (e) {
-      console.warn('Chat sync failed (using local):', e.message);
+      console.warn('Failed to persist new thread on backend:', e.message);
     }
-  }, [showToast, closeModal, setCurrentMsgId]);
+  }, [showToast, closeModal, setCurrentMsgId, messages, user, currentRole]);
 
   // Build notifications
   const buildNotifications = useCallback(() => {
@@ -774,16 +808,12 @@ export function AppProvider({ children }) {
     setNotificationDot(unreadCount > 0);
   }, [messages, complaints, readNotifIds]);
 
-  // Announcements — stored in localStorage for persistence
-  const [announcements, setAnnouncements] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('axion_announcements')) || []; } catch { return []; }
-  });
+  const [announcements, setAnnouncements] = useState([]);
 
   const addAnnouncement = useCallback((title, body, targetRole) => {
     const a = { id: 'ann-' + Date.now(), title, body, targetRole: targetRole || 'all', by: user?.name || currentRole, time: new Date().toLocaleString(), createdAt: new Date().toISOString() };
     const updated = [a, ...announcements];
     setAnnouncements(updated);
-    try { localStorage.setItem('axion_announcements', JSON.stringify(updated)); queueSyncToDB('axion_announcements', updated); } catch {}
     showToast('Announcement sent!');
     pushNotif('New Announcement', `${title} — ${by}`);
   }, [announcements, user, currentRole, showToast, pushNotif]);
@@ -792,27 +822,29 @@ export function AppProvider({ children }) {
   const todayStr = useCallback(() => new Date().toISOString().slice(0, 10), []);
 
   const saveAttendance = useCallback((dateStr, draft) => {
-    const newData = { ...attendanceData, [dateStr]: draft };
-    setAttendanceData(newData);
-    try { localStorage.setItem('axion_attendance', JSON.stringify(newData)); queueSyncToDB('axion_attendance', newData); } catch {}
-    const absentCount = Object.entries(draft).filter(([, v]) => v === 'absent').length;
-    if (absentCount > 0) pushNotif('Attendance Alert', `${absentCount} student(s) marked absent today`);
-    showToast('✓ Attendance saved for ' + new Date(dateStr + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' }));
     closeModal();
-  }, [attendanceData, showToast, closeModal, pushNotif, students]);
-
-  const persistAwardedRewards = useCallback((rewards) => {
-    try { localStorage.setItem('axion_awarded_rewards', JSON.stringify(rewards)); queueSyncToDB('axion_awarded_rewards', rewards); } catch {}
-  }, []);
+    const absentCount = Object.entries(draft).filter(([, v]) => v === 'absent').length;
+    setAttendanceData(prev => ({ ...prev, [dateStr]: draft }));
+    requestJSON(`${API_BASE}/attendance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: dateStr, records: draft }),
+    }).then(async () => {
+      await refreshData();
+      showToast('✓ Attendance saved for ' + new Date(dateStr + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' }));
+    }).catch(() => {
+      showToast('✓ Attendance saved (offline)');
+    });
+    if (absentCount > 0) pushNotif('Attendance Alert', `${absentCount} student(s) marked absent today`);
+  }, [attendanceData, showToast, closeModal, pushNotif, refreshData]);
 
   // Leaderboard helpers
   const invalidateLBCache = useCallback(() => { lbCacheRef.current = {}; }, []);
 
   const getScaledLeaderboard = useCallback((period) => {
-    if (lbCacheRef.current[period]) return lbCacheRef.current[period];
+    lbCacheRef.current = {};
     if (period === 'today') {
       const list = students.slice().sort((a, b) => b.pts - a.pts).map((s, i) => ({ ...s, rank: i + 1 }));
-      lbCacheRef.current[period] = list;
       return list;
     }
     const multipliers = { week: 5, month: 20 };
@@ -822,7 +854,6 @@ export function AppProvider({ children }) {
       const jitter = 0.85 + ((seed % 100) / 100) * 0.3;
       return { ...s, pts: Math.round(s.pts * base * jitter) };
     }).sort((a, b) => b.pts - a.pts).map((s, i) => ({ ...s, rank: i + 1 }));
-    lbCacheRef.current[period] = list;
     return list;
   }, [students]);
 
@@ -834,38 +865,30 @@ export function AppProvider({ children }) {
     currentMsgRoleFilter, setCurrentMsgRoleFilter,
     currentStudentFilter, setCurrentStudentFilter,
     currentComplaintFilter, setCurrentComplaintFilter,
-    currentFeeFilter, setCurrentFeeFilter,
     escalatedIds, readNotifIds, setReadNotifIds,
     allEligibleUsers, setAllEligibleUsers,
     currentLBFilter, setCurrentLBFilter,
     selectedChildId, setSelectedChildId,
-    selectedGiveRewardTier, setSelectedGiveRewardTier,
-
     students, setStudents, complaints, setComplaints,
-    messages, setMessages, schools, setSchools,
-    activities, setActivities, fees, setFees,
+    messages, setMessages,
+    activities, setActivities,
     announcements, setAnnouncements,
 
     notificationDot, setNotificationDot,
     notifOpen, setNotifOpen,
     activeModal, modalData, openModal, closeModal,
     toastMessage, showToast,
-    attendanceData, setAttendanceData, attendanceDraft, setAttendanceDraft,
-    awardedRewards, setAwardedRewards,
-    rewardTiers, setRewardTiers,
-
+    attendanceData, setAttendanceData, attendanceDraft, setAttendanceDraft, dailyLogs, setDailyLogs,
+    
     // Functions
     refreshData, doLogin, doRegister, logout: doLogout, navTo, buildNotifications,
     submitStudent, submitAward, submitComplaint,
     submitEditStudent, deleteStudent, saveParentDetails,
     selectMyChild,
-    registerSchool, submitEditSchool,
     resolveComplaint, escalateComplaint, submitTicketReply,
     sendMsg, editMessage, deleteMessage, deleteConversation, startChatWith,
-    submitAddFee, submitRecordPayment, submitSendReminder, deleteFeeRecord,
-    loadFeesData,
     saveAttendance, todayStr, pushNotif,
-    persistAwardedRewards,
+    
     invalidateLBCache, getScaledLeaderboard,
     addAnnouncement, addSavedProfile,
     teacherTags, addTeacherTag, removeTeacherTag,

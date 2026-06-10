@@ -1,4 +1,5 @@
 const { getBlob, upsertBlob, deleteBlob, listBlobs } = require("../services/dataBlobService");
+const { getIO } = require("../socket");
 
 async function listAllBlobs(req, res, next) {
   try {
@@ -26,6 +27,15 @@ async function putBlob(req, res, next) {
   try {
     const result = await upsertBlob(req.params.key, req.body);
     res.json(result);
+
+    try {
+      const io = getIO();
+      if (io && req.params.key === "axion_daily_logs") {
+        io.emit("daily_logs_updated");
+      }
+    } catch (e) {
+      console.warn("Socket emit failed:", e.message);
+    }
   } catch (error) {
     next(error);
   }

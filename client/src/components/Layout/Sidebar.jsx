@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
 import { NAV_DEFS, useApp } from '../../contexts/AppContext';
-import { LayoutDashboard, Users, Video, Trophy, MessageSquare, ClipboardList, School, Star, CreditCard, ClipboardCheck, Circle } from 'lucide-react';
+import { LayoutDashboard, Users, Video, Trophy, MessageSquare, ClipboardList, Star, CreditCard, ClipboardCheck, Notebook, LogOut, Circle } from 'lucide-react';
 
 const getAvatarKey = (email) => email ? `axion_avatar_${email.replace(/[^a-zA-Z0-9]/g, '_')}` : 'axion_user_avatar';
 
 function NavIcon({ name }) {
-  const icons = { LayoutDashboard, Users, Video, Trophy, MessageSquare, ClipboardList, School, Star, CreditCard, ClipboardCheck };
+  const icons = { LayoutDashboard, Users, Video, Trophy, MessageSquare, ClipboardList, Star, CreditCard, ClipboardCheck, Notebook };
   const Icon = icons[name] || Circle;
   return <Icon size={18} />;
 }
@@ -64,23 +64,41 @@ export default function Sidebar({ open, onClose }) {
             </div>
           ))}
         </div>
-        <div className="sidebar-footer">
-          <div className="user-pill">
-            <div className="user-avi" style={{ background: tc.bg, color: tc.col, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-              onClick={() => fileRef.current?.click()} title="Change profile picture">
+        <div className="sidebar-footer" style={{ padding: '12px', borderTop: '1px solid var(--border)' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 10px',
+            borderRadius: 10, transition: 'all .15s', position: 'relative',
+            background: tc.bg,
+          }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: tc.col, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, flexShrink: 0, position: 'relative', overflow: 'hidden', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}
+              onClick={() => fileRef.current?.click()} title="Change photo">
               {avatarSrc ? (
-                <img src={avatarSrc} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-              ) : (
-                user?.name?.substring(0, 2).toUpperCase() || roleConfig?.avi || 'AD'
-              )}
+                <img src={avatarSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0, borderRadius: '50%' }}
+                  onError={() => { localStorage.removeItem(AVATAR_KEY); setAvatarSrc(null); }} />
+              ) : null}
+              <span style={{ position: 'relative', zIndex: 1, lineHeight: 1 }}>{!avatarSrc ? (user?.name?.substring(0, 2).toUpperCase() || roleConfig?.avi || 'AD') : ''}</span>
             </div>
             <input type="file" ref={fileRef} style={{ display: 'none' }} accept="image/*" onChange={handleAvatarUpload} />
-            <div>
-              <div className="user-info-name">{user?.name || roleConfig?.name || 'Admin User'}</div>
-              <div className="user-info-role">{user ? currentRole.charAt(0).toUpperCase() + currentRole.slice(1) : roleConfig?.role || 'Administrator'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>{user?.name || roleConfig?.name || 'User'}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: tc.col, marginTop: 1, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: tc.col, display: 'inline-block' }} />
+                {user ? currentRole.charAt(0).toUpperCase() + currentRole.slice(1) : roleConfig?.role || 'User'}
+              </div>
             </div>
           </div>
-          <button className="logout-btn" onClick={logout}>Sign Out</button>
+          <button onClick={logout}
+            style={{
+              marginTop: 8, width: '100%', padding: '8px 10px', border: 'none', background: 'transparent',
+              borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 12, fontWeight: 600, color: 'var(--text3)', fontFamily: "'Nunito',sans-serif",
+              transition: 'all .15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--coral-pale)'; e.currentTarget.style.color = 'var(--coral)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text3)'; }}>
+            <LogOut size={14} />
+            Sign Out
+          </button>
         </div>
       </div>
     </>
