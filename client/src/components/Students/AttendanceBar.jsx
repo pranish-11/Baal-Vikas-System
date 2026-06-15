@@ -3,12 +3,11 @@ import { ClipboardCheck, Calendar, CheckCircle2, Clock, XCircle, CalendarOff, Mi
 import { useApp } from '../../contexts/AppContext';
 
 export default function AttendanceBar({ visibleStudents: propStudents }) {
-  const { students: allStudents, attendanceData, openModal } = useApp();
+  const { students: allStudents, attendanceData, openModal, selectedAttendanceDate: selectedDate, setSelectedAttendanceDate: setSelectedDate } = useApp();
   const students = propStudents || allStudents;
   const [showCalendar, setShowCalendar] = useState(false);
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const attRef = useRef(null);
   const calRef = useRef(null);
 
@@ -80,7 +79,7 @@ export default function AttendanceBar({ visibleStudents: propStudents }) {
                 </span>}
               </>
             )}
-            <button onClick={() => openModal('attendance')}
+            <button onClick={() => openModal('attendance', { date: selectedDate })}
               style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif", cursor: 'pointer', transition: 'all .2s', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(46,125,107,0.25)' }}
               onMouseEnter={e => { e.currentTarget.style.background = '#256b59'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={e => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.transform = 'translateY(0)'; }}>

@@ -36,6 +36,8 @@ export function AppProvider({ children }) {
   const [escalatedIds, setEscalatedIds] = useState(new Set());
   const [readNotifIds, setReadNotifIds] = useState(new Set());
   const [deletedConversationIds, setDeletedConversationIds] = useState(new Set());
+  const deletedRef = useRef(deletedConversationIds);
+  deletedRef.current = deletedConversationIds;
   const [allEligibleUsers, setAllEligibleUsers] = useState([]);
   const [currentLBFilter, setCurrentLBFilter] = useState('today');
   const lbCacheRef = useRef({});
@@ -47,7 +49,7 @@ export function AppProvider({ children }) {
   const [activities, setActivities] = useState([]);
 
   // UI state
-  const [notificationDot, setNotificationDot] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
   const [notifOpen, setNotifOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
   const [modalData, setModalData] = useState(null);
@@ -57,32 +59,28 @@ export function AppProvider({ children }) {
   // Attendance
   const [attendanceData, setAttendanceData] = useState({});
   const [attendanceDraft, setAttendanceDraft] = useState({});
+  const [selectedAttendanceDate, setSelectedAttendanceDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [dailyLogs, setDailyLogs] = useState({});
 
-  // Persist unread message state to localStorage so it survives page refresh
-  useEffect(() => {
-    try {
-      const unreadState = {};
-      for (const m of messages) {
-        if (m.unread) unreadState[m.id] = true;
-      }
-      localStorage.setItem('axion_unread_messages', JSON.stringify(unreadState));
-    } catch {}
-  }, [messages]);
+  // Fetch real notification count from server
+  const refreshNotifCount = useCallback(() => {
+    if (!user?.id) return;
+    requestJSON(`${API_BASE}/notifications`).then(res => {
+      if (res) setNotifCount(res.unread || 0);
+    }).catch(() => {});
+  }, [user]);
 
-  // Auto-update notification dot on data changes
-  const refreshNotifDot = useCallback(() => {
-    let has = false;
-    for (const m of messages) { if (m.unread) { has = true; break; } }
-    if (!has) for (const c of complaints) { if (c.status === 'open') { has = true; break; } }
-    if (!has) { const today = new Date().toISOString().slice(0, 10); const rec = attendanceData[today] || {}; const checkStudents = currentRole === 'parent' ? students.filter(s => s.parentEmail && s.parentEmail.toLowerCase() === user?.email?.toLowerCase()) : students; for (const s of checkStudents) { if (rec[s.id] === 'absent') { has = true; break; } } }
-    setNotificationDot(has);
-  }, [messages, complaints, students, attendanceData, currentRole, user, setNotificationDot]);
-
-  useEffect(() => { refreshNotifDot(); }, [refreshNotifDot]);
+  useEffect(() => { refreshNotifCount(); }, [refreshNotifCount]);
 
   const markAllMessagesRead = useCallback(() => {
     setMessages(prev => prev.map(m => ({ ...m, unread: false })));
+    const token = localStorage.getItem('axion_token');
+    if (token) {
+      fetch(`${API_BASE}/messages/read-all`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
   }, []);
 
   // noop
@@ -119,35 +117,34 @@ export function AppProvider({ children }) {
     });
 
     socket.on('connect', () => {
-      socket.emit('identify', uid);
+      socket.emit('identify', uid, user?.email);
       socket.emit('join', uid);
     });
 
-    socket.on('new_message', (data) => {
-      const { threadId, chatId, message } = data;
-      if (!threadId || !message) return;
-      setMessages(prev => {
-        const idx = prev.findIndex(m => m.id === threadId);
-        if (idx === -1) {
-          // Unknown thread — trigger a background refresh to pull it in
-          setTimeout(() => {
-            requestJSON(`${API_BASE}/messages`)
-              .then(res => {
-                const freshThreads = res.items || [];
-                if (freshThreads.length > 0) {
-                  const deleted = new Set(JSON.parse(localStorage.getItem('axion_deleted_conversations') || '[]'));
-                  setMessages(current => {
-                    const currentIds = new Set(current.map(m => m.id));
-                    const newOnes = freshThreads.filter(t => !deleted.has(t.id) && !currentIds.has(t.id));
-                    if (newOnes.length === 0) return current;
-                    return [...newOnes, ...current];
-                  });
-                }
-              })
-              .catch(() => {});
-          }, 300);
-          return prev;
-        }
+      socket.on('new_message', (data) => {
+        const { threadId, chatId, message } = data;
+        if (!threadId || !message) return;
+        setMessages(prev => {
+          const idx = prev.findIndex(m => m.id === threadId);
+          if (idx === -1) {
+            // Unknown thread — trigger a background refresh to pull it in
+            setTimeout(() => {
+              requestJSON(`${API_BASE}/messages`)
+                .then(res => {
+                  const freshThreads = res.items || [];
+                  if (freshThreads.length > 0) {
+                    setMessages(current => {
+                      const currentIds = new Set(current.map(m => m.id));
+                      const newOnes = freshThreads.filter(t => !deletedRef.current.has(t.id) && !currentIds.has(t.id));
+                      if (newOnes.length === 0) return current;
+                      return [...newOnes, ...current];
+                    });
+                  }
+                })
+                .catch(() => {});
+            }, 300);
+            return prev;
+          }
         const m = prev[idx];
         const chat = m.chat || [];
         const last = chat[chat.length - 1];
@@ -173,6 +170,10 @@ export function AppProvider({ children }) {
           ...prev.slice(idx + 1),
         ];
       });
+    });
+
+    socket.on('notification', (notif) => {
+      refreshNotifCount();
     });
 
     socket.on('daily_logs_updated', () => {
@@ -226,17 +227,13 @@ export function AppProvider({ children }) {
       setMessages(prev => {
         const localOnly = prev.filter(m => m.id?.startsWith('msg-'));
         const backendThreads = (data.messages || []).filter(t => !deleted.has(t.id));
-        const existingIds = new Set(localOnly.map(m => m.id));
+        const seen = new Set(localOnly.map(m => m.id));
         const merged = [...localOnly];
         for (const t of backendThreads) {
-          if (!existingIds.has(t.id)) merged.push(t);
-          existingIds.add(t.id);
+          if (!seen.has(t.id)) merged.push(t);
+          seen.add(t.id);
         }
-        // Restore persisted unread state from localStorage
-        try {
-          const stored = JSON.parse(localStorage.getItem('axion_unread_messages') || '{}');
-          return merged.map(m => ({ ...m, unread: m.unread || !!stored[m.id] }));
-        } catch { return merged; }
+        return merged;
       });
 
       if (data.complaints && data.complaints.length > 0) setComplaints(data.complaints);
@@ -249,6 +246,9 @@ export function AppProvider({ children }) {
       }
       requestJSON(`${API_BASE}/data/axion_daily_logs`).then(blob => {
         if (blob && blob.data) setDailyLogs(blob.data);
+      }).catch(() => {});
+      requestJSON(`${API_BASE}/data/axion_teacher_tags`).then(blob => {
+        if (blob && blob.data) setTeacherTags(blob.data);
       }).catch(() => {});
     } catch (e) {
       console.warn('Backend unavailable:', e.message);
@@ -331,7 +331,10 @@ export function AppProvider({ children }) {
   const submitStudent = useCallback(async (payload) => {
     closeModal();
     try {
-      await requestJSON(`${API_BASE}/students`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await requestJSON(`${API_BASE}/students`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (result && result.item) {
+        setStudents(prev => [...prev, result.item]);
+      }
       await refreshData();
       showToast('Student registered successfully!');
     } catch (e) {
@@ -339,14 +342,14 @@ export function AppProvider({ children }) {
         id: 'std-' + Date.now(), name: `${payload.firstName} ${payload.lastName}`,
         init: ((payload.firstName?.[0] || '') + (payload.lastName?.[0] || '')).toUpperCase() || '??',
         age: payload.age || 5, class: payload.className || 'Room 3 — Sunflower Class',
-        pts: 0, pct: 0, rank: students.length + 1,
+        pts: 0, pct: 0, rank: 0,
         bg: '#E0F2FE', col: '#0E7490',
         parentName: payload.parentName || null, parentEmail: payload.parentEmail || null,
       };
-      setStudents([...students, student]);
+      setStudents(prev => [...prev, student]);
       showToast('Student registered (offline)');
     }
-  }, [students, showToast, closeModal, refreshData]);
+  }, [showToast, closeModal, refreshData]);
 
   const submitAward = useCallback(async (payload) => {
     const selected = students.find(s => s.name === payload.studentId) || students[0];
@@ -441,14 +444,16 @@ export function AppProvider({ children }) {
   }, [students, showToast, closeModal, refreshData]);
 
   const selectMyChild = useCallback(async (studentId) => {
-    const storageKey = 'axion_child_id_default';
-    localStorage.setItem(storageKey, studentId);
     setSelectedChildId(studentId);
     closeModal();
     const parentName = user?.name || '';
     const parentEmail = user?.email || '';
     try {
-      await requestJSON(`${API_BASE}/students/${studentId}/parent`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parentName, parentEmail }) });
+      await requestJSON(`${API_BASE}/students/${studentId}/parent`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parentName, parentEmail }),
+      });
       await refreshData();
       showToast('✓ Child profile updated');
     } catch (e) {
@@ -653,6 +658,11 @@ export function AppProvider({ children }) {
       updated[studentId] = [...updated[studentId], tag];
       setTeacherTags(updated);
       showToast(`Tagged student: ${tag}`);
+      requestJSON(`${API_BASE}/data/axion_teacher_tags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
     }
   }, [teacherTags, showToast]);
 
@@ -662,6 +672,11 @@ export function AppProvider({ children }) {
       updated[studentId] = updated[studentId].filter(t => t !== tag);
       if (updated[studentId].length === 0) delete updated[studentId];
       setTeacherTags(updated);
+      requestJSON(`${API_BASE}/data/axion_teacher_tags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
     }
   }, [teacherTags]);
 
@@ -874,11 +889,11 @@ export function AppProvider({ children }) {
     activities, setActivities,
     announcements, setAnnouncements,
 
-    notificationDot, setNotificationDot,
+    notifCount, setNotifCount,
     notifOpen, setNotifOpen,
     activeModal, modalData, openModal, closeModal,
     toastMessage, showToast,
-    attendanceData, setAttendanceData, attendanceDraft, setAttendanceDraft, dailyLogs, setDailyLogs,
+    attendanceData, setAttendanceData, attendanceDraft, setAttendanceDraft, selectedAttendanceDate, setSelectedAttendanceDate, dailyLogs, setDailyLogs,
     
     // Functions
     refreshData, doLogin, doRegister, logout: doLogout, navTo, buildNotifications,

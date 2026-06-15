@@ -1,6 +1,7 @@
 const prisma = require("../lib/prisma");
 const {
   notifyParent,
+  notifyParentViaNotification,
   buildActivityMessage,
 } = require("./notificationService");
 
@@ -54,6 +55,7 @@ async function createActivity(data, actorId) {
     const studentName = data.studentName || "your child";
     const msg = buildActivityMessage(studentName, data.title, data.desc);
     notification = await notifyParent(data.studentId, msg, actorId);
+    notifyParentViaNotification(data.studentId, data.title, data.desc, "activity", null).catch(() => {});
   }
 
   return {

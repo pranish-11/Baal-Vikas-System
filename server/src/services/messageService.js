@@ -119,7 +119,7 @@ async function getMessages(user) {
         : 'User',
       preview: thread.preview || "",
       time: thread.timeLabel,
-      unread: false,
+      unread: !(thread.readBy || []).includes(resolvedUserId),
       avi,
       aColor,
       aText,
@@ -186,6 +186,7 @@ async function addMessageChat(threadId, payload, user) {
     data: {
       preview: payload.text,
       timeLabel: payload.time || 'Now',
+      readBy: [resolvedSenderId],
     },
   });
 
@@ -241,6 +242,7 @@ async function createThread(user, payload) {
 
   const newThreadData = {
     participantIds: [resolvedSenderId, resolvedRecipientId],
+    readBy: text ? [resolvedSenderId] : [],
     preview: text || "New conversation",
     timeLabel: time || 'Now',
   };
@@ -262,4 +264,53 @@ async function createThread(user, payload) {
   return { threadId: newThread.id };
 }
 
-module.exports = { getMessages, addMessageChat, getEligibleUsers, createThread };
+async function markThreadRead(threadId, user) {
+  let resolvedUserId = user.userId;
+  if (user.email) {
+    try {
+      const dbUser = await prisma.user.findUnique({ where: { email: user.email }, select: { id: true } });
+      if (dbUser) resolvedUserId = dbUser.id;
+    } catch {}
+  }
+
+  const thread = await prisma.messageThread.findUnique({ where: { id: threadId }, select: { id: true, readBy: true } });
+  if (!thread) {
+    const err = new Error("Thread not found");
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (!(thread.readBy || []).includes(resolvedUserId)) {
+    await prisma.messageThread.update({
+      where: { id: threadId },
+      data: { readBy: { push: resolvedUserId } },
+    });
+  }
+}
+
+async function markAllThreadsRead(user) {
+  let resolvedUserId = user.userId;
+  if (user.email) {
+    try {
+      const dbUser = await prisma.user.findUnique({ where: { email: user.email }, select: { id: true } });
+      if (dbUser) resolvedUserId = dbUser.id;
+    } catch {}
+  }
+
+  const threads = await prisma.messageThread.findMany({
+    where: {
+      participantIds: { has: resolvedUserId },
+      NOT: { readBy: { has: resolvedUserId } },
+    },
+    select: { id: true },
+  });
+
+  for (const t of threads) {
+    await prisma.messageThread.update({
+      where: { id: t.id },
+      data: { readBy: { push: resolvedUserId } },
+    });
+  }
+}
+
+module.exports = { getMessages, addMessageChat, getEligibleUsers, createThread, markThreadRead, markAllThreadsRead };

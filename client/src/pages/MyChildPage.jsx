@@ -1,9 +1,40 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Tag, Plus, Check, Clock, X, Calendar, Edit3, Sparkles, UtensilsCrossed, Bed } from 'lucide-react';
+import { Tag, Plus, Check, Clock, X, Calendar, Edit3, Sparkles, UtensilsCrossed, Bed, Smile, Frown, Meh, Brain, Users, TreePine, Heart, Star, ThumbsDown, Zap } from 'lucide-react';
 import LegoBrickIcon from '../components/LegoBrickIcon';
 import { requestJSON } from '../api';
 import { API_BASE } from '../config';
+
+function isLive(timeStr) {
+  if (!timeStr) return false;
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date();
+  const then = new Date();
+  then.setHours(h, m, 0, 0);
+  const diff = (now - then) / 60000;
+  return diff >= 0 && diff <= 150;
+}
+function timeAgo(timeStr) {
+  if (!timeStr) return null;
+  const [h, m] = timeStr.split(':').map(Number);
+  const now = new Date();
+  const then = new Date();
+  then.setHours(h, m, 0, 0);
+  const diff = Math.round((now - then) / 60000);
+  if (diff < 0) return null;
+  if (diff < 1) return 'Just now';
+  if (diff < 60) return `${diff}m ago`;
+  const hrs = Math.floor(diff / 60);
+  return `${hrs}h ${diff % 60}m ago`;
+}
+
+const ACTIVITIES_FULL = [
+  { key: 'ate', label: 'Ate meals', icon: UtensilsCrossed, color: '#4CAF96', detailPlaceholder: 'What did they eat?', hasRefused: true },
+  { key: 'nap', label: 'Slept', icon: Bed, color: '#7C5CBF', detailPlaceholder: 'How long? (e.g. 1.5 hrs)' },
+  { key: 'play', label: 'Played', icon: LegoBrickIcon, color: '#6366f1', detailPlaceholder: 'What did they play?' },
+  { key: 'outdoor', label: 'Outdoor', icon: TreePine, color: '#22c55e', detailPlaceholder: 'Outdoor activities?' },
+  { key: 'snack', label: 'Snack', icon: UtensilsCrossed, color: '#f59e0b', detailPlaceholder: 'What snack?', hasRefused: true },
+];
 
 export default function MyChildPage() {
   const { students, activities, setActivities, currentRole, user, attendanceData, dailyLogs, setDailyLogs, openModal, teacherTags, showToast } = useApp();
@@ -27,20 +58,54 @@ export default function MyChildPage() {
 
   const isTeacher = currentRole === 'teacher' || currentRole === 'admin';
 
-  const dateStr = new Date().toISOString().slice(0, 10);
-  const rec = attendanceData[dateStr] || {};
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const rec = attendanceData[todayStr] || {};
   const todayStatus = rec[myChild.id];
-  const dailyLog = dailyLogs[myChild.id]?.[dateStr] || null;
+  const dailyLog = dailyLogs[myChild.id]?.[todayStr] || null;
 
   const [showLogForm, setShowLogForm] = useState(false);
   const [logForm, setLogForm] = useState({
-    ate: dailyLog?.ate || false,
-    nap: dailyLog?.nap || false,
-    play: dailyLog?.play || false,
-    group: dailyLog?.group || false,
-    quiet: dailyLog?.quiet || false,
-    note: dailyLog?.note || '',
+    ate: false, ateDetails: '', ateRefused: false, ateTime: '',
+    nap: false, napDetails: '', napTime: '',
+    play: false, playDetails: '', playTime: '',
+    outdoor: false, outdoorDetails: '', outdoorTime: '',
+    snack: false, snackDetails: '', snackRefused: false, snackTime: '',
+    mood: '', learning: '', social: '', health: '',
+    overallRating: 0, note: '',
   });
+
+  useEffect(() => {
+    setLogForm({
+      ate: dailyLog?.ate || false,
+      ateDetails: dailyLog?.ateDetails || '',
+      ateRefused: dailyLog?.ateRefused || false,
+      ateTime: dailyLog?.ateTime || '',
+      nap: dailyLog?.nap || false,
+      napDetails: dailyLog?.napDetails || '',
+      napTime: dailyLog?.napTime || '',
+      play: dailyLog?.play || false,
+      playDetails: dailyLog?.playDetails || '',
+      playTime: dailyLog?.playTime || '',
+      outdoor: dailyLog?.outdoor || false,
+      outdoorDetails: dailyLog?.outdoorDetails || '',
+      outdoorTime: dailyLog?.outdoorTime || '',
+      snack: dailyLog?.snack || false,
+      snackDetails: dailyLog?.snackDetails || '',
+      snackRefused: dailyLog?.snackRefused || false,
+      snackTime: dailyLog?.snackTime || '',
+      mood: dailyLog?.mood || '',
+      learning: dailyLog?.learning || '',
+      social: dailyLog?.social || '',
+      health: dailyLog?.health || '',
+      overallRating: dailyLog?.overallRating || 0,
+      note: dailyLog?.note || '',
+    });
+  }, [dailyLog]);
+
+  // Date navigation for viewing past daily logs
+  const [viewDate, setViewDate] = useState(todayStr);
+  const viewDailyLog = dailyLogs[myChild.id]?.[viewDate] || null;
+  const isViewingToday = viewDate === todayStr;
 
   const childActivities = activities.filter(a =>
     a.title?.toLowerCase().includes(myChild.name.toLowerCase())
@@ -92,18 +157,25 @@ export default function MyChildPage() {
   });
 
   const dailyActivities = [
-    { key: 'ate', label: 'Ate meals' },
-    { key: 'nap', label: 'Slept' },
-    { key: 'play', label: 'Played' },
+    { key: 'ate', label: 'Ate meals', detailKey: 'ateDetails', detailPlaceholder: 'What did they eat?', timeKey: 'ateTime', hasRefused: true },
+    { key: 'nap', label: 'Slept', detailKey: 'napDetails', detailPlaceholder: 'How long? (e.g. 1.5 hrs)', timeKey: 'napTime' },
+    { key: 'play', label: 'Played', detailKey: 'playDetails', detailPlaceholder: 'What did they play?', timeKey: 'playTime' },
+    { key: 'outdoor', label: 'Outdoor', detailKey: 'outdoorDetails', detailPlaceholder: 'Outdoor activities?', timeKey: 'outdoorTime' },
+    { key: 'snack', label: 'Snack', detailKey: 'snackDetails', detailPlaceholder: 'What snack?', timeKey: 'snackTime', hasRefused: true },
   ];
 
   const saveDailyLog = () => {
     const data = { ...logForm, updatedAt: new Date().toISOString() };
+    // Auto-set times for any toggled-on activities that lack a time
+    const nowTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    dailyActivities.forEach(a => {
+      if (data[a.key] && !data[a.timeKey]) data[a.timeKey] = nowTime;
+    });
     const newDailyLogs = {
       ...dailyLogs,
       [myChild.id]: {
         ...(dailyLogs[myChild.id] || {}),
-        [dateStr]: data,
+        [todayStr]: data,
       },
     };
     setDailyLogs(newDailyLogs);
@@ -112,26 +184,73 @@ export default function MyChildPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newDailyLogs),
     }).catch(() => {});
+    const summary = dailyActivities.filter(a => logForm[a.key]).map(a => {
+      let s = a.label;
+      if (a.hasRefused && logForm[a.key + 'Refused']) s += ' (refused)';
+      if (logForm[a.detailKey]) s += ': ' + logForm[a.detailKey];
+      if (logForm[a.timeKey]) s += ' @ ' + logForm[a.timeKey];
+      return s;
+    }).join(', ');
     const act = {
       id: 'act-' + Date.now(),
       title: `Daily log updated for ${myChild.name}`,
-      desc: Object.entries(logForm).filter(([k, v]) => k !== 'note' && v).map(([k]) => k).join(', ') + (logForm.note ? ' — ' + logForm.note : ''),
+      desc: summary + (logForm.note ? ' — ' + logForm.note : ''),
       time: 'Just now', timeLabel: 'Just now',
+      studentId: myChild.id,
     };
     setActivities([act, ...activities]);
+    requestJSON(`${API_BASE}/activities`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: `Daily log: ${myChild.name}`,
+        desc: summary + (logForm.note ? ' — ' + logForm.note : ''),
+        icon: '📋',
+        studentId: myChild.id,
+        studentName: myChild.name,
+        loggedAt: new Date().toISOString(),
+      }),
+    }).catch(() => {});
     showToast('Daily activities saved');
     setShowLogForm(false);
   };
 
   const toggleActivity = (key) => {
-    setLogForm({ ...logForm, [key]: !logForm[key] });
+    const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+    setLogForm(prev => {
+      const newVal = !prev[key];
+      const patch = { [key]: newVal };
+      if (newVal) patch[key + 'Time'] = now;
+      if (!newVal) patch[key + 'Time'] = '';
+      return { ...prev, ...patch };
+    });
   };
 
   const logItems = dailyLog ? [
-    { label: 'Ate meals', done: dailyLog.ate },
-    { label: 'Slept', done: dailyLog.nap },
-    { label: 'Played', done: dailyLog.play },
+    { label: 'Ate meals', done: dailyLog.ate, details: dailyLog.ateDetails, refused: dailyLog.ateRefused, time: dailyLog.ateTime, color: '#4CAF96' },
+    { label: 'Slept', done: dailyLog.nap, details: dailyLog.napDetails, time: dailyLog.napTime, color: '#7C5CBF' },
+    { label: 'Played', done: dailyLog.play, details: dailyLog.playDetails, time: dailyLog.playTime, color: '#6366f1' },
+    { label: 'Outdoor', done: dailyLog.outdoor, details: dailyLog.outdoorDetails, time: dailyLog.outdoorTime, color: '#22c55e' },
+    { label: 'Snack', done: dailyLog.snack, details: dailyLog.snackDetails, refused: dailyLog.snackRefused, time: dailyLog.snackTime, color: '#f59e0b' },
   ] : [];
+
+  const overviewLogItems = [
+    { label: 'Ate meals', done: dailyLog?.ate, details: dailyLog?.ateDetails, refused: dailyLog?.ateRefused, time: dailyLog?.ateTime, color: '#4CAF96' },
+    { label: 'Slept', done: dailyLog?.nap, details: dailyLog?.napDetails, time: dailyLog?.napTime, color: '#7C5CBF' },
+    { label: 'Played', done: dailyLog?.play, details: dailyLog?.playDetails, time: dailyLog?.playTime, color: '#6366f1' },
+    { label: 'Outdoor', done: dailyLog?.outdoor, details: dailyLog?.outdoorDetails, time: dailyLog?.outdoorTime, color: '#22c55e' },
+    { label: 'Snack', done: dailyLog?.snack, details: dailyLog?.snackDetails, refused: dailyLog?.snackRefused, time: dailyLog?.snackTime, color: '#f59e0b' },
+  ];
+
+  const viewLogItems = [
+    { label: 'Ate meals', done: viewDailyLog?.ate, details: viewDailyLog?.ateDetails, refused: viewDailyLog?.ateRefused, time: viewDailyLog?.ateTime, color: '#4CAF96' },
+    { label: 'Slept', done: viewDailyLog?.nap, details: viewDailyLog?.napDetails, time: viewDailyLog?.napTime, color: '#7C5CBF' },
+    { label: 'Played', done: viewDailyLog?.play, details: viewDailyLog?.playDetails, time: viewDailyLog?.playTime, color: '#6366f1' },
+    { label: 'Outdoor', done: viewDailyLog?.outdoor, details: viewDailyLog?.outdoorDetails, time: viewDailyLog?.outdoorTime, color: '#22c55e' },
+    { label: 'Snack', done: viewDailyLog?.snack, details: viewDailyLog?.snackDetails, refused: viewDailyLog?.snackRefused, time: viewDailyLog?.snackTime, color: '#f59e0b' },
+  ];
+
+  const MOOD_MAP = { happy: { emoji: '😊', label: 'Happy', color: '#22c55e' }, okay: { emoji: '😐', label: 'Okay', color: '#f59e0b' }, tired: { emoji: '😴', label: 'Tired', color: '#8b5cf6' }, sad: { emoji: '😢', label: 'Sad', color: '#6366f1' }, fussy: { emoji: '😣', label: 'Fussy', color: '#ef4444' } };
 
   return (
     <>
@@ -205,30 +324,68 @@ export default function MyChildPage() {
             </div>
           </div>
 
-          {dailyLog && (
-            <div style={{ padding: 14, borderRadius: 12, background: '#fafafa', border: '1px solid var(--border)', marginBottom: 14 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 8 }}>📋 Today's Activities</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: dailyLog.note ? 8 : 0 }}>
-                {[
-                  { key: 'ate', label: 'Ate meals', icon: '🍽️', done: dailyLog.ate, doneBg: '#e8f5e9', doneCol: '#2e7d32', notBg: '#f5f5f5', notCol: '#aaa' },
-                  { key: 'nap', label: 'Slept', icon: '💤', done: dailyLog.nap, doneBg: 'var(--sky-pale)', doneCol: '#1565c0', notBg: '#f5f5f5', notCol: '#aaa' },
-                  { key: 'play', label: 'Played', icon: '🎮', done: dailyLog.play, doneBg: 'var(--gold-pale)', doneCol: '#e65100', notBg: '#f5f5f5', notCol: '#aaa' },
-                ].map(a => (
-                  <span key={a.key} style={{
-                    padding: '4px 10px', borderRadius: 20,
-                    background: a.done ? a.doneBg : a.notBg,
-                    color: a.done ? a.doneCol : a.notCol,
-                    fontSize: 11, fontWeight: 700,
-                    transition: 'all .15s',
-                    opacity: a.done ? 1 : 0.6,
-                  }}>
-                    {a.icon} {a.label}{!a.done ? ' — Not yet' : ''}
-                  </span>
-                ))}
+          <div style={{ padding: 14, borderRadius: 12, background: '#fafafa', border: '1px solid var(--border)', marginBottom: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text2)', marginBottom: 10 }}>📋 Today's Full Report</div>
+
+            {/* Mood + Rating row (only if data exists) */}
+            {dailyLog && (dailyLog.mood || dailyLog.overallRating > 0) && (
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+                {dailyLog.mood && MOOD_MAP[dailyLog.mood] && (
+                  <div style={{ padding: '5px 10px', borderRadius: 8, background: MOOD_MAP[dailyLog.mood].color + '20', display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700 }}>
+                    {MOOD_MAP[dailyLog.mood].emoji} Mood: {MOOD_MAP[dailyLog.mood].label}
+                  </div>
+                )}
+                {dailyLog.overallRating > 0 && (
+                  <div style={{ padding: '5px 10px', borderRadius: 8, background: '#fef3c7', display: 'flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700 }}>
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star key={i} size={12} fill={i < dailyLog.overallRating ? '#f59e0b' : 'none'} color={i < dailyLog.overallRating ? '#f59e0b' : '#d4d4d4'} />
+                    ))}
+                    <span style={{ marginLeft: 4, color: '#a16207' }}>Rating</span>
+                  </div>
+                )}
               </div>
-              {dailyLog.note && <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', fontStyle: 'italic' }}>"{dailyLog.note}"</div>}
+            )}
+
+            {/* Activities - always shown, greyed out when no data */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: (dailyLog?.note || dailyLog?.learning || dailyLog?.social || dailyLog?.health) ? 8 : 0 }}>
+              {overviewLogItems.map(item => {
+                const c = item.color;
+                const hasData = item.done !== undefined && item.done !== null;
+                const done = Boolean(item.done);
+                const live = isLive(item.time);
+                const ago = timeAgo(item.time);
+                return (
+                  <div key={item.label} style={{
+                    padding: '7px 10px', borderRadius: 8,
+                    background: done ? c + '15' : hasData ? '#f5f5f5' : '#f5f5f5',
+                    display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
+                    borderLeft: done ? `3px solid ${c}` : hasData ? '3px solid #ddd' : '3px solid #ddd',
+                    opacity: !hasData ? 0.4 : 1,
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: done ? c : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      {done ? '✓' : '✗'} {item.label}
+                      {live && <span style={{ fontSize: 8, fontWeight: 800, color: '#22c55e', padding: '1px 5px', borderRadius: 3, background: '#dcfce7' }}>LIVE</span>}
+                      {item.time && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', marginLeft: 2 }}>🕐 {item.time}</span>}
+                      {ago && <span style={{ fontSize: 10, fontWeight: 600, color: live ? '#22c55e' : '#9ca3af' }}>({ago})</span>}
+                    </div>
+                    {item.refused && <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', padding: '1px 6px', borderRadius: 4, background: '#fee2e2' }}>Refused</span>}
+                    {item.details && <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text2)' }}>{item.details}</span>}
+                  </div>
+                );
+              })}
             </div>
-          )}
+
+            {/* Development notes (only if data exists) */}
+            {dailyLog && (dailyLog.learning || dailyLog.social || dailyLog.health) && (
+              <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                {dailyLog.learning && <div style={{ padding: '5px 10px', borderRadius: 8, background: '#f3e8ff', fontSize: 11, fontWeight: 600, color: '#7c3aed' }}>🧠 {dailyLog.learning}</div>}
+                {dailyLog.social && <div style={{ padding: '5px 10px', borderRadius: 8, background: '#e0f2fe', fontSize: 11, fontWeight: 600, color: '#0369a1' }}>👥 {dailyLog.social}</div>}
+                {dailyLog.health && <div style={{ padding: '5px 10px', borderRadius: 8, background: '#fce4ec', fontSize: 11, fontWeight: 600, color: '#c62828' }}>❤️ {dailyLog.health}</div>}
+              </div>
+            )}
+
+            {dailyLog?.note && <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: '#f7f6f3', borderLeft: '3px solid var(--primary)', fontSize: 12, fontWeight: 600, color: '#3a3a4a', lineHeight: 1.6 }}>{dailyLog.note}</div>}
+          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
@@ -312,23 +469,116 @@ export default function MyChildPage() {
             <Calendar size={16} style={{ color: 'var(--text3)' }} />
           </div>
           <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8, marginBottom: 12 }}>
+            {/* Mood */}
+            <div style={{ marginBottom: 12, padding: 10, borderRadius: 10, background: '#fefce8', border: '1px solid #fde68a' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#a16207', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Smile size={13} /> How was their mood today?
+              </div>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {[
+                  { value: 'happy', label: 'Happy', emoji: '😊', color: '#22c55e' },
+                  { value: 'okay', label: 'Okay', emoji: '😐', color: '#f59e0b' },
+                  { value: 'tired', label: 'Tired', emoji: '😴', color: '#8b5cf6' },
+                  { value: 'sad', label: 'Sad', emoji: '😢', color: '#6366f1' },
+                  { value: 'fussy', label: 'Fussy', emoji: '😣', color: '#ef4444' },
+                ].map(m => {
+                  const active = logForm.mood === m.value;
+                  return (
+                    <button key={m.value} onClick={() => setLogForm({ ...logForm, mood: active ? '' : m.value })}
+                      style={{
+                        padding: '5px 10px', borderRadius: 8, border: active ? `1.5px solid ${m.color}` : '1px solid #e5e5e5',
+                        background: active ? m.color + '20' : '#fff', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, fontSize: 11,
+                        color: active ? m.color : '#888',
+                      }}>
+                      {m.emoji} {m.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Activities */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
               {dailyActivities.map(a => (
-                <div key={a.key}
-                  onClick={() => toggleActivity(a.key)}
-                  style={{
-                    padding: '10px 12px', borderRadius: 10, cursor: 'pointer', userSelect: 'none',
-                    background: logForm[a.key] ? 'var(--primary-pale)' : 'var(--surface2)',
-                    border: `2px solid ${logForm[a.key] ? 'var(--primary)' : 'transparent'}`,
-                    textAlign: 'center', fontWeight: 700, fontSize: 13,
-                    color: logForm[a.key] ? 'var(--primary)' : 'var(--text3)',
-                    transition: 'all .15s',
-                  }}>
-                  {logForm[a.key] ? <Check size={16} style={{ display: 'block', margin: '0 auto 4px' }} /> : <X size={16} style={{ display: 'block', margin: '0 auto 4px' }} />}
-                  {a.label}
+                <div key={a.key} style={{
+                  padding: 10, borderRadius: 10,
+                  background: logForm[a.key] ? 'var(--primary-pale)' : 'var(--surface2)',
+                  border: `2px solid ${logForm[a.key] ? 'var(--primary)' : 'transparent'}`,
+                  transition: 'all .15s',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: logForm[a.key] ? 8 : 0 }}>
+                    <div onClick={() => toggleActivity(a.key)} style={{
+                      cursor: 'pointer', userSelect: 'none', fontWeight: 700, fontSize: 13,
+                      color: logForm[a.key] ? 'var(--primary)' : 'var(--text3)',
+                      display: 'flex', alignItems: 'center', gap: 4, flex: 1,
+                    }}>
+                      {logForm[a.key] ? <Check size={16} /> : <X size={16} />}
+                      {a.label}
+                    </div>
+                  </div>
+                  {logForm[a.key] && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {a.hasRefused && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: 'var(--coral)', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={logForm[a.key + 'Refused'] || false} onChange={e => setLogForm({ ...logForm, [a.key + 'Refused']: e.target.checked })} style={{ accentColor: 'var(--coral)' }} />
+                            <ThumbsDown size={11} /> Refused
+                          </label>
+                        )}
+                        <input style={{ flex: 1, minWidth: 120, padding: '5px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}
+                          placeholder={a.detailPlaceholder} value={logForm[a.detailKey] || ''}
+                          onChange={e => setLogForm({ ...logForm, [a.detailKey]: e.target.value })} />
+                        <input style={{ width: 80, padding: '5px 8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}
+                          placeholder="Time" value={logForm[a.timeKey] || ''}
+                          onChange={e => setLogForm({ ...logForm, [a.timeKey]: e.target.value })} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
+
+            {/* Development Notes */}
+            <div style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#666' }}>DEVELOPMENT NOTES</div>
+              {[
+                { key: 'learning', label: 'Learning / Skills', icon: Brain, placeholder: 'e.g. Recognized letters, counted to 10', color: '#8b5cf6' },
+                { key: 'social', label: 'Social Interaction', icon: Users, placeholder: 'e.g. Shared toys, played with friends', color: '#06b6d4' },
+                { key: 'health', label: 'Health Notes', icon: Heart, placeholder: 'e.g. Cough, fever, allergies, bumps', color: '#ef4444' },
+              ].map(f => (
+                <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <f.icon size={13} style={{ color: f.color, flexShrink: 0 }} />
+                  <input style={{
+                    flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid #eae7e2', fontSize: 11, fontWeight: 600, fontFamily: 'inherit', outline: 'none',
+                  }}
+                    placeholder={f.placeholder} value={logForm[f.key] || ''}
+                    onChange={e => setLogForm({ ...logForm, [f.key]: e.target.value })} />
+                </div>
+              ))}
+            </div>
+
+            {/* Overall Rating */}
+            <div style={{ marginBottom: 12, padding: 10, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a' }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#a16207', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                <Star size={13} /> Overall Day Rating
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[1, 2, 3, 4, 5].map(r => (
+                  <button key={r} onClick={() => setLogForm({ ...logForm, overallRating: logForm.overallRating === r ? 0 : r })}
+                    style={{
+                      width: 32, height: 32, borderRadius: 8,
+                      border: logForm.overallRating >= r ? '1px solid #f59e0b' : '1px solid #e5e5e5',
+                      background: logForm.overallRating >= r ? '#fef3c7' : '#fff',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: logForm.overallRating >= r ? '#d97706' : '#d4d4d4',
+                    }}>
+                    <Star size={14} fill={logForm.overallRating >= r ? '#f59e0b' : 'none'} />
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <textarea
               style={{ width: '100%', padding: 12, borderRadius: 10, border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 600, resize: 'vertical', minHeight: 60, fontFamily: 'inherit' }}
               placeholder="Add a note about today (e.g. 'Had a great time playing outside')"
@@ -347,11 +597,40 @@ export default function MyChildPage() {
         <div className="card">
           <div className="card-header">
             <div className="card-title">Daily Activity Log</div>
-            {isTeacher && !showLogForm && (
-              <span className="card-action" onClick={() => setShowLogForm(true)}>
-                <Edit3 size={13} style={{ display: 'inline', marginRight: 3 }} /> Log today
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                onClick={() => {
+                  const d = new Date(viewDate + 'T00:00:00');
+                  d.setDate(d.getDate() - 1);
+                  setViewDate(d.toISOString().slice(0, 10));
+                }}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: 'var(--text2)', lineHeight: '22px' }}
+              >‹</button>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text2)', whiteSpace: 'nowrap', minWidth: 80, textAlign: 'center' }}>
+                {new Date(viewDate + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric', year: viewDate === todayStr ? undefined : 'numeric' })}
               </span>
-            )}
+              <button
+                onClick={() => {
+                  const d = new Date(viewDate + 'T00:00:00');
+                  d.setDate(d.getDate() + 1);
+                  const next = d.toISOString().slice(0, 10);
+                  if (next <= todayStr) setViewDate(next);
+                }}
+                style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: viewDate >= todayStr ? 'var(--border)' : 'var(--text2)', lineHeight: '22px' }}
+                disabled={viewDate >= todayStr}
+              >›</button>
+              {!isViewingToday && (
+                <button
+                  onClick={() => setViewDate(todayStr)}
+                  style={{ background: 'var(--primary)', border: 'none', borderRadius: 6, padding: '2px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 700, color: '#fff', lineHeight: '22px' }}
+                >Today</button>
+              )}
+              {isTeacher && !showLogForm && (
+                <span className="card-action" onClick={() => setShowLogForm(true)} style={{ marginLeft: 4 }}>
+                  <Edit3 size={13} style={{ display: 'inline', marginRight: 3 }} /> Log today
+                </span>
+              )}
+            </div>
           </div>
           <div className="card-body">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
@@ -367,61 +646,88 @@ export default function MyChildPage() {
               </div>
             </div>
 
-            {dailyLog && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <div style={{ width: 3, height: 16, borderRadius: 2, background: 'linear-gradient(180deg, #6366f1, #8b5cf6)' }} />
-                  <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.6 }}>Today's Activities</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                  {[
-                    { key: 'ate', label: 'Ate meals', icon: UtensilsCrossed, done: dailyLog.ate },
-                    { key: 'nap', label: 'Slept', icon: Bed, done: dailyLog.nap },
-                    { key: 'play', label: 'Playing', icon: LegoBrickIcon, done: dailyLog.play },
-                  ].map(item => {
-                    const isPlay = item.key === 'play';
-                    return (
-                      <div key={item.key} style={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-                        padding: '12px 6px', borderRadius: isPlay ? 14 : 10,
-                        background: item.done
-                          ? isPlay ? 'linear-gradient(135deg, #eef2ff, #e0e7ff)' : 'var(--primary-pale)'
-                          : 'var(--surface2)',
-                        border: isPlay && item.done ? '1.5px solid #6366f1' : 'none',
-                        textAlign: 'center', position: 'relative',
-                      }}>
-                        {isPlay && item.done && (
-                          <div style={{ position: 'absolute', top: -3, right: -3, width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.5)', animation: 'pulse 1.5s infinite' }} />
-                        )}
-                        <div style={{
-                          width: 36, height: 36, borderRadius: isPlay ? 12 : 10,
-                          background: item.done
-                            ? isPlay ? 'linear-gradient(135deg, #6366f1, #8b5cf6)' : 'var(--primary)'
-                            : 'var(--border)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                        }}>
-                          <item.icon size={16} />
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: item.done ? 'var(--primary)' : 'var(--text3)' }}>{item.label}</div>
-                        <div style={{ fontSize: 10, fontWeight: 600, color: item.done ? 'var(--primary)' : 'var(--text3)' }}>{item.done ? (isPlay ? 'Active' : 'Done') : 'Not yet'}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {dailyLog.note && (
-                  <div style={{ marginTop: 12, padding: '10px 12px 8px', borderRadius: 10, background: '#f7f6f3', border: '1px solid #e8e5e0', fontSize: 12, fontWeight: 500, color: '#3a3a4a', lineHeight: 1.7, position: 'relative' }}>
-                    <div style={{ fontSize: 9, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Note</div>
-                    <div>{dailyLog.note}</div>
-                  </div>
-                )}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                <div style={{ width: 3, height: 16, borderRadius: 2, background: 'linear-gradient(180deg, #6366f1, #8b5cf6)' }} />
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  {isViewingToday ? "Today's Activities" : new Date(viewDate + 'T00:00:00').toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' }) + ' Activities'}
+                </span>
               </div>
-            )}
 
-            {!dailyLog && !isTeacher && (
-              <div style={{ marginBottom: 14, padding: 14, textAlign: 'center', color: 'var(--text3)', fontSize: 12, fontWeight: 600 }}>
-                No daily activities logged yet for today.
+              {/* Mood + Rating (only if data exists for viewed date) */}
+              {viewDailyLog && (viewDailyLog.mood || viewDailyLog.overallRating > 0) && (
+                <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+                  {viewDailyLog.mood && MOOD_MAP[viewDailyLog.mood] && (
+                    <div style={{ padding: '4px 10px', borderRadius: 8, background: MOOD_MAP[viewDailyLog.mood].color + '15', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700 }}>
+                      {MOOD_MAP[viewDailyLog.mood].emoji} Mood: {MOOD_MAP[viewDailyLog.mood].label}
+                    </div>
+                  )}
+                  {viewDailyLog.overallRating > 0 && (
+                    <div style={{ padding: '4px 10px', borderRadius: 8, background: '#fef3c7', display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, fontWeight: 700, color: '#a16207' }}>
+                      {Array.from({ length: 5 }, (_, i) => (
+                        <Star key={i} size={10} fill={i < viewDailyLog.overallRating ? '#f59e0b' : 'none'} color={i < viewDailyLog.overallRating ? '#f59e0b' : '#d4d4d4'} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Activities - always shown, greyed out when no log */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {viewLogItems.map(item => {
+                  const c = item.color;
+                  const hasData = item.done !== undefined && item.done !== null;
+                  const done = Boolean(item.done);
+                  const live = isLive(item.time);
+                  const ago = timeAgo(item.time);
+                  return (
+                    <div key={item.label} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                      borderRadius: 8,
+                      background: done ? c + '12' : 'var(--surface2)',
+                      borderLeft: done ? `3px solid ${c}` : hasData ? '3px solid #ddd' : '3px solid transparent',
+                      opacity: !hasData ? 0.35 : 1,
+                    }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                        background: done ? c : 'var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+                      }}>
+                        {done ? <Check size={12} /> : <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', opacity: hasData ? 1 : 0.5 }}>—</span>}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: done ? c : 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {item.label}
+                          {live && <span style={{ fontSize: 8, fontWeight: 800, color: '#22c55e', padding: '1px 5px', borderRadius: 3, background: '#dcfce7' }}>LIVE</span>}
+                          {item.time && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)' }}>🕐 {item.time}</span>}
+                          {ago && <span style={{ fontSize: 10, fontWeight: 600, color: live ? '#22c55e' : '#9ca3af' }}>({ago})</span>}
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          {item.refused && <span style={{ color: '#ef4444', fontWeight: 700 }}>Refused</span>}
+                          {item.details && <span>{item.details}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+
+              {/* Dev notes (only if data exists) */}
+              {viewDailyLog && (viewDailyLog.learning || viewDailyLog.social || viewDailyLog.health) && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {viewDailyLog.learning && <div style={{ padding: '4px 10px', borderRadius: 8, background: '#f3e8ff', fontSize: 10, fontWeight: 600, color: '#7c3aed' }}>🧠 {viewDailyLog.learning}</div>}
+                  {viewDailyLog.social && <div style={{ padding: '4px 10px', borderRadius: 8, background: '#e0f2fe', fontSize: 10, fontWeight: 600, color: '#0369a1' }}>👥 {viewDailyLog.social}</div>}
+                  {viewDailyLog.health && <div style={{ padding: '4px 10px', borderRadius: 8, background: '#fce4ec', fontSize: 10, fontWeight: 600, color: '#c62828' }}>❤️ {viewDailyLog.health}</div>}
+                </div>
+              )}
+
+              {viewDailyLog?.note && (
+                <div style={{ marginTop: 10, padding: '10px 12px 8px', borderRadius: 10, background: '#f7f6f3', border: '1px solid #e8e5e0', fontSize: 12, fontWeight: 500, color: '#3a3a4a', lineHeight: 1.7, position: 'relative' }}>
+                  <div style={{ fontSize: 9, fontWeight: 800, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>Note</div>
+                  <div>{viewDailyLog.note}</div>
+                </div>
+              )}
+            </div>
 
             {childActivities.length === 0 ? (
               <div className="activity-item">

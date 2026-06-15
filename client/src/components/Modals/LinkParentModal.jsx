@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { UserPlus, Check, Search } from 'lucide-react';
+import { API_BASE } from '../../config';
 
 export default function LinkParentModal({ open, onClose }) {
   const { students, submitEditStudent } = useApp();
@@ -10,17 +11,42 @@ export default function LinkParentModal({ open, onClose }) {
   const [showManual, setShowManual] = useState(false);
   const [manualName, setManualName] = useState('');
   const [manualEmail, setManualEmail] = useState('');
+  const [allParents, setAllParents] = useState([]);
+
+  useEffect(() => {
+    if (!open) return;
+    // Fetch parent users from server
+    fetch(`${API_BASE}/users?role=PARENT`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('axion_token')}` },
+    }).then(r => r.json()).then(data => {
+      const parents = (data.users || data.items || []).map(u => ({
+        name: u.name || u.email,
+        email: u.email,
+        fromSaved: true,
+      }));
+      setAllParents(parents);
+    }).catch(() => {});
+    // Also fetch existing profiles as fallback
+    try {
+      const saved = JSON.parse(localStorage.getItem('axion_saved_profiles')) || [];
+      if (saved.length > 0) {
+        setAllParents(prev => {
+          const map = {};
+          [...saved.filter(p => p.role === 'parent' && p.email).map(p => ({ name: p.name || p.email, email: p.email, fromSaved: true })), ...prev].forEach(p => {
+            const k = p.email.toLowerCase();
+            if (!map[k]) map[k] = p;
+          });
+          return Object.values(map);
+        });
+      }
+    } catch {}
+  }, [open]);
 
   const parentList = useMemo(() => {
     const map = {};
-    try {
-      const profiles = JSON.parse(localStorage.getItem('axion_saved_profiles')) || [];
-      profiles.forEach(p => {
-        if (p.role === 'parent' && p.email) {
-          map[p.email.toLowerCase()] = { name: p.name || p.email, email: p.email, fromSaved: true };
-        }
-      });
-    } catch {}
+    allParents.forEach(p => {
+      if (p.email) map[p.email.toLowerCase()] = { name: p.name || p.email, email: p.email, fromSaved: true };
+    });
     students.forEach(s => {
       if (s.parentEmail) {
         const key = s.parentEmail.toLowerCase();
@@ -32,7 +58,7 @@ export default function LinkParentModal({ open, onClose }) {
       }
     });
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
-  }, [students]);
+  }, [allParents, students]);
 
   const filteredStudents = studentSearch
     ? students.filter(s => s.name.toLowerCase().includes(studentSearch.toLowerCase()) || s.class.toLowerCase().includes(studentSearch.toLowerCase()))

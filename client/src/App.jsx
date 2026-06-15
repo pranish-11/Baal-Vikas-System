@@ -72,7 +72,7 @@ function Toast({ message }) {
 
 function AppContent() {
   const [searchOpen, setSearchOpen] = useState(false);
-  const { isLoggedIn, currentRole, currentPage, navTo, activeModal, modalData, openModal, closeModal, toastMessage, notifOpen, setNotifOpen, notificationDot } = useApp();
+  const { isLoggedIn, currentRole, currentPage, navTo, activeModal, modalData, openModal, closeModal, toastMessage, notifOpen, setNotifOpen, notifCount } = useApp();
 
   const handleNavigate = (page) => {
     navTo(page);
@@ -111,7 +111,7 @@ function AppContent() {
       <AppLayout
         onOpenModal={handleCta}
         onToggleNotif={() => setNotifOpen(!notifOpen)}
-        notifDot={notificationDot}
+        notifCount={notifCount}
         onOpenSearch={() => setSearchOpen(true)}
       >
         {renderPage()}

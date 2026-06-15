@@ -8,8 +8,12 @@ router.get("/", async (req, res, next) => {
     if (req.user.role !== "ADMIN") {
       return res.status(403).json({ error: "Only admins can manage users" });
     }
+    const roleFilter = req.query.role;
+    const where = roleFilter
+      ? { role: roleFilter.toUpperCase() === "PARENT" ? "PARENT" : roleFilter.toUpperCase() === "TEACHER" ? "TEACHER" : { in: ["TEACHER", "PARENT"] } }
+      : { role: { in: ["TEACHER", "PARENT"] } };
     const users = await prisma.user.findMany({
-      where: { role: { in: ["TEACHER", "PARENT"] } },
+      where,
       select: { id: true, name: true, email: true, role: true, createdAt: true },
       orderBy: { createdAt: "desc" },
     });

@@ -78,7 +78,7 @@ export default function MessagesPage() {
           const merged = prev.filter(m => !m.id?.startsWith('msg-') || fresh.some(f => f.id === m.id));
           for (let i = 0; i < merged.length; i++) {
             const f = freshById[merged[i].id];
-            if (f) merged[i] = { ...f, unread: merged[i].unread || f.unread };
+            if (f) merged[i] = f;
           }
           for (const f of fresh) {
             if (!merged.some(m => m.id === f.id)) merged.push(f);
@@ -101,6 +101,13 @@ export default function MessagesPage() {
   const switchMsg = (id) => {
     setCurrentMsgId(id);
     setMessages(prev => prev.map(m => m.id === id ? { ...m, unread: false } : m));
+    const token = localStorage.getItem('axion_token');
+    if (token && !id?.startsWith('msg-')) {
+      fetch(`${API_BASE}/messages/${id}/read`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+    }
   };
 
   const handleSend = () => {

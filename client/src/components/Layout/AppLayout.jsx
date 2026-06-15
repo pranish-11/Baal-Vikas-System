@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
-export default function AppLayout({ children, onOpenModal, onToggleNotif, notifDot, onOpenSearch }) {
+export default function AppLayout({ children, onOpenModal, onToggleNotif, notifCount, onOpenSearch }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -13,7 +13,7 @@ export default function AppLayout({ children, onOpenModal, onToggleNotif, notifD
           onOpenSidebar={() => setSidebarOpen(true)}
           onOpenModal={onOpenModal}
           onToggleNotif={onToggleNotif}
-          notifDot={notifDot}
+          notifCount={notifCount}
           onOpenSearch={onOpenSearch}
         />
         <div className="content-area">

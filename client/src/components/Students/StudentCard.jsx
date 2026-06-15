@@ -6,7 +6,7 @@ function useStudentAvatar(studentId) {
 }
 
 export default function StudentCard({ student, attendanceStatus }) {
-  const { name, init, class: sClass, age, pts, pct, rank, bg, col, id } = student;
+  const { name = '', init = '??', class: sClass = '', age = '', pts = 0, pct = 0, rank = 0, bg, col, id } = student;
   const { teacherTags } = useApp();
   const tags = teacherTags?.[id] || [];
   const avatarSrc = useStudentAvatar(id);

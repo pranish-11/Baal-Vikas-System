@@ -5,11 +5,11 @@ import StudentCard from '../components/Students/StudentCard';
 import AttendanceBar from '../components/Students/AttendanceBar';
 
 export default function StudentsPage() {
-  const { students, attendanceData, openModal, setCurrentStudentFilter, currentRole, user, getTeacherClassrooms } = useApp();
+  const { students, attendanceData, openModal, setCurrentStudentFilter, currentRole, user, getTeacherClassrooms, selectedAttendanceDate } = useApp();
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const dateStr = selectedAttendanceDate || new Date().toISOString().slice(0, 10);
   const rec = attendanceData[dateStr] || {};
 
   let visibleStudents = students;

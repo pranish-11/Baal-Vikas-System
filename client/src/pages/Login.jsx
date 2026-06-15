@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogIn, Loader, X, Leaf } from 'lucide-react';
+import { LogIn, Loader, X, Leaf, Eye, EyeOff } from 'lucide-react';
 import { useApp } from '../contexts/AppContext';
 import { register } from '../api';
 
@@ -19,6 +19,8 @@ export default function Login() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   const savedPass = localStorage.getItem('axion_last_pass') || '';
   const savedProfiles = (() => {
@@ -187,7 +189,12 @@ export default function Login() {
         </div>
         <div className="form-group">
           <label className="form-label">Password</label>
-          <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 13 }} />
+          <div style={{ position: 'relative' }}>
+            <input className="form-input" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 13, paddingRight: 36 }} />
+            <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </span>
+          </div>
         </div>
         {error && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--coral-pale)', color: 'var(--coral)' }}>{error}</div>}
         {success && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--primary-pale)', color: 'var(--primary)' }}>{success}</div>}
@@ -247,7 +254,12 @@ export default function Login() {
         </div>
         <div className="form-group">
           <label className="form-label">Password</label>
-          <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 13 }} />
+          <div style={{ position: 'relative' }}>
+            <input className="form-input" type={showRegPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter password" style={{ background: 'var(--surface2)', border: '1px solid var(--border)', fontSize: 13, paddingRight: 36 }} />
+            <span onClick={() => setShowRegPassword(!showRegPassword)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center' }}>
+              {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </span>
+          </div>
         </div>
         {error && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--coral-pale)', color: 'var(--coral)' }}>{error}</div>}
         {success && <div style={{ marginBottom: 12, padding: '10px 14px', borderRadius: 10, fontSize: 12, fontWeight: 600, textAlign: 'center', background: 'var(--primary-pale)', color: 'var(--primary)' }}>{success}</div>}

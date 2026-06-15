@@ -8,6 +8,8 @@ const authRouter = require("./auth");
 const feesRouter = require("./fees");
 const usersRouter = require("./users");
 const dataBlobRouter = require("./dataBlob");
+const chatbotRouter = require("./chatbot");
+const notificationsRouter = require("./notifications");
 const authMiddleware = require("../middleware/authMiddleware");
 const prisma = require("../lib/prisma");
 
@@ -47,5 +49,7 @@ router.use("/api/attendance", authMiddleware, attendanceRouter);
 router.use("/api/fees", authMiddleware, feesRouter);
 router.use("/api/users", authMiddleware, usersRouter);
 router.use("/api/data", authMiddleware, dataBlobRouter);
+router.use("/api/chatbot", authMiddleware, chatbotRouter);
+router.use("/api/notifications", authMiddleware, notificationsRouter);
 
 module.exports = router;

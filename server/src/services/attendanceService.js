@@ -1,5 +1,5 @@
 const prisma = require("../lib/prisma");
-const { notifyParent, buildAttendanceMessage } = require("./notificationService");
+const { notifyParent, notifyParentViaNotification, buildAttendanceMessage } = require("./notificationService");
 
 /**
  * Get attendance records for a given date.
@@ -134,6 +134,7 @@ async function saveAttendance(data, user) {
     if (student && student.parentEmail) {
       const msg = buildAttendanceMessage(student.fullName, "absent");
       await notifyParent(studentId, msg, user.userId).catch(() => {});
+      await notifyParentViaNotification(studentId, `${student.fullName} is absent`, `Marked absent today`, "attendance", null).catch(() => {});
     }
   }
 

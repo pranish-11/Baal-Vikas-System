@@ -1,4 +1,5 @@
-const { getComplaints, replyToComplaint, resolveComplaint, createComplaint, escalateComplaint } = require("../services/complaintService");
+const complaintService = require("../services/complaintService");
+const { notifyAdmins } = require("../services/notificationService");
 const { getIO } = require("../socket");
 
 async function listComplaints(req, res, next) {
@@ -52,6 +53,12 @@ async function createNewComplaint(req, res, next) {
     const item = await createComplaint(req.body, req.user);
     const io = getIO();
     if (io) io.emit("complaints_updated");
+    notifyAdmins(
+      "New Complaint Filed",
+      `${req.user.name || "Someone"} filed a complaint: ${item.title}`,
+      "complaint",
+      "/complaints"
+    ).catch(() => {});
     res.status(201).json({ item });
   } catch (error) {
     next(error);
