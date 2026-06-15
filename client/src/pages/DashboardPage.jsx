@@ -32,7 +32,7 @@ function isLive(timeStr) {
 }
 
 export default function DashboardPage({ onNavigate }) {
-  const { currentRole, students, attendanceData, teacherTags, activities, user, openModal, complaints, messages, getTeacherClassrooms, dailyLogs } = useApp();
+  const { currentRole, students, attendanceData, teacherTags, activities, user, openModal, complaints, messages, getTeacherClassrooms, dailyLogs, hasAssignedClasses, getTeacherClassName } = useApp();
 
   if (currentRole === 'parent') {
     const email = user?.email || '';
@@ -337,12 +337,31 @@ export default function DashboardPage({ onNavigate }) {
     );
   }
 
+  if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
+    return (
+      <div className="empty-state" style={{ padding: 60, textAlign: 'center' }}>
+        <div className="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text3)', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <p style={{ fontSize: 20, fontWeight: 900, marginTop: 20, color: 'var(--text)' }}>Welcome, {user?.name || 'Teacher'}!</p>
+        <p style={{ fontSize: 14, color: 'var(--text3)', fontWeight: 600, maxWidth: 420, margin: '10px auto 0', lineHeight: 1.6 }}>
+          You must be assigned to a class by the admin to access this feature.
+        </p>
+      </div>
+    );
+  }
+
   const teacherStudents = currentRole === 'teacher'
-    ? (() => { const a = getTeacherClassrooms(user?.email); return a ? students.filter(s => a.includes(s.class)) : students; })()
+    ? (() => { const a = getTeacherClassrooms(user?.email); return a.length > 0 ? students.filter(s => a.includes(s.class)) : []; })()
     : students;
+
+  const teacherClassName = currentRole === 'teacher' ? getTeacherClassName(user?.email) : '';
 
   return (
     <>
+      {currentRole === 'teacher' && teacherClassName && (
+        <div style={{ marginBottom: 16, fontSize: 15, fontWeight: 800, color: 'var(--sky)' }}>
+          {teacherClassName}
+        </div>
+      )}
       {(currentRole === 'teacher' || currentRole === 'admin') && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', fontWeight: 800, gap: 6, display: 'flex', alignItems: 'center' }}

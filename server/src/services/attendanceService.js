@@ -205,9 +205,82 @@ async function getMonthlyReport(month, user) {
   };
 }
 
+/**
+ * Get a weekly attendance summary for the given ISO week start (Sunday).
+ * Returns data for Sunday through Friday (6 days).
+ */
+async function getWeeklyReport(weekStart, user) {
+  const start = new Date(weekStart + "T00:00:00");
+  const end = new Date(start);
+  end.setDate(end.getDate() + 5);
+  const weekStartStr = start.toISOString().slice(0, 10);
+  const weekEndStr = end.toISOString().slice(0, 10);
+
+  const records = await prisma.attendanceRecord.findMany({
+    where: { date: { gte: weekStartStr, lte: weekEndStr } },
+  });
+
+  // Parents only see their own child
+  let allowedIds = null;
+  if (user.role === "PARENT") {
+    const linkedStudents = await prisma.student.findMany({
+      where: { parentEmail: { equals: user.email, mode: "insensitive" } },
+      select: { id: true },
+    });
+    allowedIds = new Set(linkedStudents.map((s) => s.id));
+  }
+
+  const dailyBreakdown = {};
+  const byStudent = {};
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i);
+    const ds = d.toISOString().slice(0, 10);
+    dailyBreakdown[ds] = { present: 0, late: 0, absent: 0, leave: 0, total: 0 };
+  }
+
+  for (const r of records) {
+    if (allowedIds && !allowedIds.has(r.studentId)) continue;
+    if (!dailyBreakdown[r.date]) dailyBreakdown[r.date] = { present: 0, late: 0, absent: 0, leave: 0, total: 0 };
+    dailyBreakdown[r.date][r.status] = (dailyBreakdown[r.date][r.status] || 0) + 1;
+    dailyBreakdown[r.date].total++;
+
+    if (!byStudent[r.studentId]) {
+      byStudent[r.studentId] = { present: 0, late: 0, absent: 0, leave: 0, total: 0 };
+    }
+    byStudent[r.studentId][r.status]++;
+    byStudent[r.studentId].total++;
+  }
+
+  let totalPresent = 0, totalLate = 0, totalAbsent = 0, totalLeave = 0;
+  Object.values(dailyBreakdown).forEach((d) => {
+    totalPresent += d.present;
+    totalLate += d.late;
+    totalAbsent += d.absent;
+    totalLeave += d.leave;
+  });
+  const overall = totalPresent + totalLate + totalAbsent + totalLeave;
+  const overallRate = overall > 0 ? Math.round(((totalPresent + totalLate) / overall) * 100) : 0;
+
+  return {
+    weekStart: weekStartStr,
+    weekEnd: weekEndStr,
+    dailyBreakdown: Object.entries(dailyBreakdown).map(([date, counts]) => ({ date, ...counts })),
+    summary: {
+      totalPresent,
+      totalLate,
+      totalAbsent,
+      totalLeave,
+      overall,
+      overallRate,
+    },
+  };
+}
+
 module.exports = {
   getAttendanceByDate,
   getAttendanceByStudent,
   saveAttendance,
   getMonthlyReport,
+  getWeeklyReport,
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { ClipboardCheck, Calendar, CheckCircle2, Clock, XCircle, CalendarOff, Save, Layers } from 'lucide-react';
+import { ClipboardCheck, Calendar, CheckCircle2, Clock, XCircle, CalendarOff, Save, Layers, RefreshCw } from 'lucide-react';
 
 export default function AttendanceModal({ open, onClose, data }) {
   const { students, attendanceData, todayStr, saveAttendance, currentRole, user, getTeacherClassrooms } = useApp();
@@ -9,6 +9,7 @@ export default function AttendanceModal({ open, onClose, data }) {
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDraft({ ...(attendanceData[dateStr] || {}) });
     }
   }, [open, dateStr, attendanceData]);
@@ -23,11 +24,15 @@ export default function AttendanceModal({ open, onClose, data }) {
     setDraft(newDraft);
   };
 
+  const resetAll = () => {
+    setDraft({});
+  };
+
   const statuses = {
-    present: { label: 'Present', icon: CheckCircle2, bg: '#f0fdf4', col: '#15803d', border: '#16a34a' },
-    late: { label: 'Late', icon: Clock, bg: '#fffbeb', col: '#92600A', border: '#F4A929' },
-    absent: { label: 'Absent', icon: XCircle, bg: '#fff1f2', col: '#be123c', border: '#e11d48' },
-    leave: { label: 'Leave', icon: CalendarOff, bg: '#f3e8ff', col: '#7c3aed', border: '#8b5cf6' },
+    present: { label: 'Present', icon: CheckCircle2, bg: '#f0fdf4', col: '#15803d', border: '#22c55e' },
+    late: { label: 'Late', icon: Clock, bg: '#fff7ed', col: '#9a3412', border: '#f97316' },
+    absent: { label: 'Absent', icon: XCircle, bg: '#fef2f2', col: '#991b1b', border: '#ef4444' },
+    leave: { label: 'Leave', icon: CalendarOff, bg: '#faf5ff', col: '#6b21a8', border: '#a855f7' },
   };
 
   const teacherAssigned = currentRole === 'teacher' ? getTeacherClassrooms(user?.email) : null;
@@ -52,6 +57,10 @@ export default function AttendanceModal({ open, onClose, data }) {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [visibleStudents]);
 
+  const dateDisplay = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+  });
+
   if (!open) return null;
 
   return (
@@ -67,7 +76,7 @@ export default function AttendanceModal({ open, onClose, data }) {
               <div style={{ fontSize: 17, fontWeight: 900, color: '#fff' }}>Mark Attendance</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 700, marginTop: 2 }}>
                 <Calendar size={12} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 4 }} />
-                {new Date().toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                {dateDisplay}
               </div>
             </div>
           </div>
@@ -75,13 +84,13 @@ export default function AttendanceModal({ open, onClose, data }) {
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.2)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
               <CheckCircle2 size={12} />{present} Present
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(244,169,41,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(249,115,22,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
               <Clock size={12} />{late} Late
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(225,29,72,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(239,68,68,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
               <XCircle size={12} />{absent} Absent
             </span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(139,92,246,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 12px', borderRadius: 20, background: 'rgba(168,85,247,0.3)', color: '#fff', fontSize: 12, fontWeight: 800 }}>
               <CalendarOff size={12} />{leave} Leave
             </span>
             {unmarked > 0 && (
@@ -92,13 +101,13 @@ export default function AttendanceModal({ open, onClose, data }) {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', background: 'var(--surface2)', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: .6, color: 'var(--text3)', marginRight: 4 }}>Quick set:</span>
           {[
-            { label: 'All Present', status: 'present', bg: '#f0fdf4', col: '#15803d', border: '#16a34a', icon: CheckCircle2 },
-            { label: 'All Late', status: 'late', bg: '#fffbeb', col: '#92600A', border: '#F4A929', icon: Clock },
-            { label: 'All Absent', status: 'absent', bg: '#fff1f2', col: '#be123c', border: '#e11d48', icon: XCircle },
-            { label: 'All Leave', status: 'leave', bg: '#f3e8ff', col: '#7c3aed', border: '#8b5cf6', icon: CalendarOff },
+            { label: 'All Present', status: 'present', bg: '#f0fdf4', col: '#15803d', border: '#22c55e', icon: CheckCircle2 },
+            { label: 'All Late', status: 'late', bg: '#fff7ed', col: '#9a3412', border: '#f97316', icon: Clock },
+            { label: 'All Absent', status: 'absent', bg: '#fef2f2', col: '#991b1b', border: '#ef4444', icon: XCircle },
+            { label: 'All Leave', status: 'leave', bg: '#faf5ff', col: '#6b21a8', border: '#a855f7', icon: CalendarOff },
           ].map(b => {
             const Icon = b.icon;
             return (
@@ -108,6 +117,10 @@ export default function AttendanceModal({ open, onClose, data }) {
               </button>
             );
           })}
+          <button onClick={resetAll}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', background: 'var(--surface)', color: 'var(--text3)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 800, cursor: 'pointer', fontFamily: "'Nunito',sans-serif" }}>
+            <RefreshCw size={12} /> Reset
+          </button>
         </div>
 
         <div style={{ maxHeight: 420, overflowY: 'auto', padding: '16px 20px', background: 'var(--bg)' }}>
@@ -122,10 +135,10 @@ export default function AttendanceModal({ open, onClose, data }) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {classStudents.map(s => {
                     const current = draft[s.id] || null;
-                    const rowBg = current === 'absent' ? '#fff8f8' : current === 'late' ? '#fffdf5' : '#fff';
-                    const leftAccent = current === 'absent' ? '#e11d48' : current === 'late' ? '#F4A929' : current === 'present' ? '#16a34a' : 'var(--border)';
+                    const rowBg = current === 'absent' ? '#fef2f2' : current === 'late' ? '#fff7ed' : 'var(--surface)';
+                    const leftAccent = current === 'absent' ? '#ef4444' : current === 'late' ? '#f97316' : current === 'present' ? '#22c55e' : 'transparent';
                     return (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: rowBg, border: '1.5px solid var(--border)', borderLeft: `4px solid ${leftAccent}`, transition: 'all .15s' }}>
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: rowBg, border: '1.5px solid var(--border)', borderLeft: leftAccent !== 'transparent' ? `4px solid ${leftAccent}` : '1.5px solid var(--border)', transition: 'all .15s' }}>
                         <div style={{ width: 36, height: 36, borderRadius: '50%', background: s.bg || 'var(--primary-pale)', color: s.col || 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.init}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{s.name}</div>
@@ -138,7 +151,7 @@ export default function AttendanceModal({ open, onClose, data }) {
                             const Icon = m.icon;
                             return (
                               <button key={st} onClick={() => setStatus(s.id, st)}
-                                style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all .15s', fontFamily: "'Nunito',sans-serif", border: `1.5px solid ${active ? m.border : 'var(--border)'}`, background: active ? m.bg : '#fff', color: active ? m.col : 'var(--text3)', boxShadow: active ? `0 2px 6px ${m.border}55` : 'none' }}>
+                                style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all .15s', fontFamily: "'Nunito',sans-serif", border: `1.5px solid ${active ? m.border : 'var(--border)'}`, background: active ? m.bg : 'var(--surface)', color: active ? m.col : 'var(--text3)', boxShadow: active ? `0 2px 6px ${m.border}55` : 'none' }}>
                                 <Icon size={10} />{m.label}
                               </button>
                             );
@@ -153,10 +166,10 @@ export default function AttendanceModal({ open, onClose, data }) {
           ) : (
             visibleStudents.map(s => {
               const current = draft[s.id] || null;
-              const rowBg = current === 'absent' ? '#fff8f8' : current === 'late' ? '#fffdf5' : '#fff';
-              const leftAccent = current === 'absent' ? '#e11d48' : current === 'late' ? '#F4A929' : current === 'present' ? '#16a34a' : 'var(--border)';
+              const rowBg = current === 'absent' ? '#fff8f8' : current === 'late' ? '#fffdf5' : 'var(--surface)';
+              const leftAccent = current === 'absent' ? '#e11d48' : current === 'late' ? '#F4A929' : current === 'present' ? '#16a34a' : 'transparent';
               return (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: rowBg, border: '1.5px solid var(--border)', borderLeft: `4px solid ${leftAccent}`, transition: 'all .15s' }}>
+                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', borderRadius: 12, background: rowBg, border: '1.5px solid var(--border)', borderLeft: leftAccent !== 'transparent' ? `4px solid ${leftAccent}` : '1.5px solid var(--border)', transition: 'all .15s' }}>
                   <div style={{ width: 36, height: 36, borderRadius: '50%', background: s.bg || 'var(--primary-pale)', color: s.col || 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.init}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>{s.name}</div>
@@ -169,7 +182,7 @@ export default function AttendanceModal({ open, onClose, data }) {
                       const Icon = m.icon;
                       return (
                         <button key={st} onClick={() => setStatus(s.id, st)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all .15s', fontFamily: "'Nunito',sans-serif", border: `1.5px solid ${active ? m.border : 'var(--border)'}`, background: active ? m.bg : '#fff', color: active ? m.col : 'var(--text3)', boxShadow: active ? `0 2px 6px ${m.border}55` : 'none' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '5px 8px', borderRadius: 8, fontSize: 10, fontWeight: 800, cursor: 'pointer', transition: 'all .15s', fontFamily: "'Nunito',sans-serif", border: `1.5px solid ${active ? m.border : 'var(--border)'}`, background: active ? m.bg : 'var(--surface)', color: active ? m.col : 'var(--text3)', boxShadow: active ? `0 2px 6px ${m.border}55` : 'none' }}>
                           <Icon size={10} />{m.label}
                         </button>
                       );
@@ -181,9 +194,12 @@ export default function AttendanceModal({ open, onClose, data }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: '14px 20px', background: '#fff', borderTop: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: '14px 20px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+          <div style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>
+            {unmarked < visibleStudents.length ? `${present + late} attending · ${absent} absent` : 'No students marked yet'}
+          </div>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button onClick={() => saveAttendance(dateStr, draft)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 22px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif", cursor: 'pointer', transition: 'all .2s' }}>
+          <button onClick={() => saveAttendance(dateStr, draft)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 22px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, fontFamily: "'Nunito',sans-serif", cursor: 'pointer', transition: 'all .2s', boxShadow: '0 2px 8px rgba(46,125,107,0.25)' }}>
             <Save size={15} /> Save Attendance
           </button>
         </div>

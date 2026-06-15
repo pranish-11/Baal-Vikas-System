@@ -6,9 +6,9 @@ import { API_BASE, SOCKET_URL } from '../config';
 const AppContext = createContext(null);
 
 export const ROLES = {
-  admin: { name: 'Admin User', role: 'Administrator', avi: 'AD', color: 'var(--primary)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg> Register Student', ctaFn: 'openStudentModal', school: 'Sunrise Montessori' },
-  teacher: { name: 'Ms. Anika Roy', role: 'Teacher · Room 3', avi: 'AR', color: 'var(--sky)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Award Points', ctaFn: 'openAwardModal', school: 'Room 3 — Sunflower Class' },
-  parent: { name: 'Mrs. Lena Kim', role: 'Parent of Liam K.', avi: 'LK', color: 'var(--coral)', pages: ['dashboard', 'myChild', 'detection', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg> File Complaint', ctaFn: 'openComplaintModal', school: 'Sunrise Montessori' },
+  admin: { name: 'Admin User', role: 'Administrator', avi: 'AD', color: 'var(--primary)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" x2="20" y1="8" y2="14"/><line x1="23" x2="17" y1="11" y2="11"/></svg> Register Student', ctaFn: 'openStudentModal', school: '' },
+  teacher: { name: 'Teacher', role: 'Teacher', avi: 'TC', color: 'var(--sky)', pages: ['dashboard', 'students', 'detection', 'dailyLog', 'leaderboard', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Award Points', ctaFn: 'openAwardModal', school: '' },
+  parent: { name: 'Parent', role: 'Parent', avi: 'PA', color: 'var(--coral)', pages: ['dashboard', 'myChild', 'detection', 'messages', 'complaints', 'attendanceReports'], cta: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:text-bottom;margin-right:6px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg> File Complaint', ctaFn: 'openComplaintModal', school: '' },
 };
 
 export const NAV_DEFS = {
@@ -199,6 +199,14 @@ export function AppProvider({ children }) {
       }).catch(() => {});
     });
 
+    socket.on('behaviour_updated', () => {
+      refreshDataRef.current();
+    });
+
+    socket.on('award_updated', () => {
+      refreshDataRef.current();
+    });
+
     socket.on('disconnect', () => {});
 
     socketRef.current = socket;
@@ -341,7 +349,7 @@ export function AppProvider({ children }) {
       const student = {
         id: 'std-' + Date.now(), name: `${payload.firstName} ${payload.lastName}`,
         init: ((payload.firstName?.[0] || '') + (payload.lastName?.[0] || '')).toUpperCase() || '??',
-        age: payload.age || 5, class: payload.className || 'Room 3 — Sunflower Class',
+        age: payload.age || 5, class: payload.className || '',
         pts: 0, pct: 0, rank: 0,
         bg: '#E0F2FE', col: '#0E7490',
         parentName: payload.parentName || null, parentEmail: payload.parentEmail || null,
@@ -704,6 +712,7 @@ export function AppProvider({ children }) {
           updated[email] = classes;
         }
       }
+      localStorage.setItem('axion_teacher_classrooms', JSON.stringify(updated));
       return updated;
     });
     setClassList(prev => prev.filter(c => c !== name));
@@ -714,22 +723,47 @@ export function AppProvider({ children }) {
     return [...new Set([...classList, ...fromStudents])].sort();
   }, [classList, students]);
 
-  const [teacherClassrooms, setTeacherClassrooms] = useState({});
+  const [teacherClassrooms, setTeacherClassrooms] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('axion_teacher_classrooms') || '{}'); } catch { return {}; }
+  });
 
   const saveTeacherClassrooms = useCallback((data) => {
     setTeacherClassrooms(data);
+    localStorage.setItem('axion_teacher_classrooms', JSON.stringify(data));
   }, []);
 
-  // Get classrooms a teacher is assigned to; defaults to all if none set
+  // Get classrooms a teacher is assigned to; returns [] if none set
   const getTeacherClassrooms = useCallback((email) => {
-    if (!email) return null;
+    if (!email) return [];
     const lowerEmail = email.toLowerCase();
     const key = Object.keys(teacherClassrooms).find(k => k.toLowerCase() === lowerEmail);
     if (key) {
       const assigned = teacherClassrooms[key];
       if (assigned && assigned.length > 0) return assigned;
     }
-    return null; // null = all classrooms
+    return [];
+  }, [teacherClassrooms]);
+
+  const hasAssignedClasses = useCallback((email) => {
+    if (!email) return false;
+    const lowerEmail = email.toLowerCase();
+    const key = Object.keys(teacherClassrooms).find(k => k.toLowerCase() === lowerEmail);
+    if (key) {
+      const assigned = teacherClassrooms[key];
+      return assigned && assigned.length > 0;
+    }
+    return false;
+  }, [teacherClassrooms]);
+
+  const getTeacherClassName = useCallback((email) => {
+    if (!email) return '';
+    const lowerEmail = email.toLowerCase();
+    const key = Object.keys(teacherClassrooms).find(k => k.toLowerCase() === lowerEmail);
+    if (key) {
+      const assigned = teacherClassrooms[key];
+      if (assigned && assigned.length > 0) return assigned[0];
+    }
+    return '';
   }, [teacherClassrooms]);
 
   const startChatWith = useCallback(async (recipientId, recipientName, recipientRole, contactEmail) => {
@@ -907,7 +941,7 @@ export function AppProvider({ children }) {
     invalidateLBCache, getScaledLeaderboard,
     addAnnouncement, addSavedProfile,
     teacherTags, addTeacherTag, removeTeacherTag,
-    teacherClassrooms, saveTeacherClassrooms, getTeacherClassrooms,
+    teacherClassrooms, saveTeacherClassrooms, getTeacherClassrooms, hasAssignedClasses, getTeacherClassName,
     classList, addClass, removeClass, getAllClasses,
   };
 

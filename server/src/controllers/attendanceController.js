@@ -3,6 +3,7 @@ const {
   getAttendanceByStudent,
   saveAttendance,
   getMonthlyReport,
+  getWeeklyReport,
 } = require("../services/attendanceService");
 const { getIO } = require("../socket");
 
@@ -35,11 +36,28 @@ async function markAttendance(req, res, next) {
     try {
       const io = getIO();
       if (io) {
-        io.emit("attendance_updated", { date: req.body.date });
+        io.emit("attendance_updated", { date: req.body.date, saved: result.saved });
       }
     } catch (e) {
       console.warn("Socket emit failed:", e.message);
     }
+  } catch (err) {
+    next(err);
+  }
+}
+
+async function weeklyReport(req, res, next) {
+  try {
+    const weekStart = req.query.weekStart;
+    const start = weekStart || (() => {
+      const now = new Date();
+      const day = now.getDay();
+      const sunday = new Date(now);
+      sunday.setDate(now.getDate() - day);
+      return sunday.toISOString().slice(0, 10);
+    })();
+    const result = await getWeeklyReport(start, req.user);
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -55,4 +73,4 @@ async function monthlyReport(req, res, next) {
   }
 }
 
-module.exports = { listByDate, listByStudent, markAttendance, monthlyReport };
+module.exports = { listByDate, listByStudent, markAttendance, monthlyReport, weeklyReport };

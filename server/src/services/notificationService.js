@@ -137,6 +137,13 @@ function buildActivityMessage(studentName, activityTitle, activityDesc) {
 function buildAwardMessage(studentName, points, description) {
   return `🌟 Great news! ${studentName} was awarded ${points} behavior point${points !== 1 ? "s" : ""} today. "${description}" — Axion Montessori System`;
 }
+function buildBehaviourMessage(studentName, points, description) {
+  if (points > 0) {
+    return `🌟 Great news! ${studentName} was awarded ${points} behavior point${points !== 1 ? "s" : ""} today. "${description}" — Axion Montessori System`;
+  }
+  const absPts = Math.abs(points);
+  return `⚠️ Update: ${studentName} lost ${absPts} behavior point${absPts !== 1 ? "s" : ""} today. "${description}" — Axion Montessori System`;
+}
 function buildAttendanceMessage(studentName, status) {
   if (status === "present") return `✅ ${studentName} has arrived at school and is present today. — Axion Montessori System`;
   if (status === "absent") return `⚠️ ${studentName} has been marked absent today. Please contact the school if this is unexpected. — Axion Montessori System`;
@@ -230,6 +237,7 @@ module.exports = {
   notifyParent,
   buildActivityMessage,
   buildAwardMessage,
+  buildBehaviourMessage,
   buildAttendanceMessage,
   notifyParentViaNotification,
   notifyAdmins,

@@ -1,22 +1,25 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../contexts/AppContext';
+import { requestJSON } from '../api';
+import { API_BASE } from '../config';
 import {
-  CalendarDays, TrendingUp, Users, Clock, XCircle, CalendarOff,
-  ChevronLeft, ChevronRight, CheckCircle2, UserCheck, UserX
+  CalendarDays, Users, Clock, XCircle, CalendarOff,
+  ChevronLeft, ChevronRight, CheckCircle2, UserCheck, UserX, Info,
+  BarChart3, PieChart, Filter
 } from 'lucide-react';
 
 const STATUS_COLORS = {
-  present: '#16a34a',
-  late: '#f59e0b',
-  absent: '#e11d48',
-  leave: '#7c3aed',
+  present: '#22c55e',
+  late: '#f97316',
+  absent: '#ef4444',
+  leave: '#a855f7',
 };
 
-const STATUS_COLORS_CSS = {
-  present: 'var(--primary)',
-  late: 'var(--gold)',
-  absent: 'var(--coral)',
-  leave: 'var(--lavender)',
+const STATUS_BG = {
+  present: '#22c55e18',
+  late: '#f9731618',
+  absent: '#ef444418',
+  leave: '#a855f718',
 };
 
 const STATUS_LABELS = {
@@ -26,7 +29,17 @@ const STATUS_LABELS = {
   leave: 'Leave',
 };
 
-function CalendarHeatmap({ data, month, year, selectedDate, onSelectDate, attendanceData, filteredStudents }) {
+function Tooltip({ text, children }) {
+  return (
+    <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', cursor: 'help', gap: 3 }}
+      title={text}>
+      {children}
+      <Info size={12} style={{ color: 'var(--text3)', opacity: 0.45 }} />
+    </span>
+  );
+}
+
+function CalendarHeatmap({ data, month, year, selectedDate, onSelectDate }) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDay = new Date(year, month - 1, 1).getDay();
   const cells = [];
@@ -38,37 +51,39 @@ function CalendarHeatmap({ data, month, year, selectedDate, onSelectDate, attend
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, maxWidth: 260 }}>
-      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((s, i) => (
+      {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(s => (
         <div key={s} style={{
           fontSize: 10, fontWeight: 800, textAlign: 'center', padding: '2px 0',
-          color: i === 0 || i === 6 ? 'var(--coral)' : 'var(--text3)',
+          color: 'var(--text3)',
         }}>{s}</div>
       ))}
       {cells.map((cell, i) => {
         if (!cell) return <div key={i} />;
         const { dateStr, status } = cell;
         const dayNum = Number(dateStr.split('-')[2]);
-        const d = new Date(year, month - 1, dayNum);
-        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const isSel = dateStr === selectedDate;
         const isToday = dateStr === new Date().toISOString().slice(0, 10);
-        const hasData = !!status;
         return (
           <div key={i} onClick={() => onSelectDate(dateStr)}
             style={{
               width: '100%', aspectRatio: 1, borderRadius: 6, display: 'flex',
               alignItems: 'center', justifyContent: 'center', position: 'relative',
               fontSize: 10, fontWeight: isSel || isToday ? 800 : 700,
-              background: isSel ? 'var(--primary)' : hasData ? STATUS_COLORS[status] : (isWeekend ? 'var(--surface2)' : 'transparent'),
-              color: (isSel || hasData) ? '#fff' : (isToday ? 'var(--primary)' : 'var(--text3)'),
-              opacity: hasData || isSel ? 1 : (isWeekend ? 0.35 : 0.55),
+              background: isSel ? 'var(--primary)' : status ? STATUS_COLORS[status] : 'transparent',
+              color: (isSel || status) ? '#fff' : (isToday ? 'var(--primary)' : 'var(--text3)'),
+              opacity: status || isSel ? 1 : 0.55,
               cursor: 'pointer', transition: 'all .15s',
               border: isToday && !isSel ? '2px solid var(--primary)' : 'none',
             }}
-            onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = hasData ? STATUS_COLORS[status] : 'var(--primary-pale)'; }}
-            onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = hasData ? STATUS_COLORS[status] : (isWeekend ? 'var(--surface2)' : 'transparent'); }}
+            title={`${dateStr}: ${status ? STATUS_LABELS[status] : 'No record'}`}
           >
             {dayNum}
+            {status && (
+              <div style={{
+                position: 'absolute', bottom: 1, right: 2, width: 4, height: 4,
+                borderRadius: '50%', background: 'rgba(255,255,255,0.6)',
+              }} />
+            )}
           </div>
         );
       })}
@@ -79,31 +94,98 @@ function CalendarHeatmap({ data, month, year, selectedDate, onSelectDate, attend
 function DailyBarChart({ dailyCounts }) {
   if (!dailyCounts || dailyCounts.length === 0) return null;
   const maxVal = Math.max(...dailyCounts.map(d => d.total), 1);
+  const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 110, padding: '4px 0' }}>
-      {dailyCounts.map((d, i) => {
-        const pH = (d.present / maxVal) * 100;
-        const lH = (d.late / maxVal) * 100;
-        const aH = (d.absent / maxVal) * 100;
-        const leaveH = (d.leave / maxVal) * 100;
-        return (
-          <div key={d.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 6, maxWidth: 24 }}>
-            <div style={{ display: 'flex', flexDirection: 'column-reverse', width: '100%', height: 100, borderRadius: 4, overflow: 'hidden', background: 'var(--surface2)' }}>
-              {d.leave > 0 && <div style={{ height: `${leaveH}%`, background: STATUS_COLORS.leave, minHeight: 1, transition: 'height .3s' }} title={`${d.date}: ${d.leave} left`} />}
-              {d.absent > 0 && <div style={{ height: `${aH}%`, background: STATUS_COLORS.absent, minHeight: 1, transition: 'height .3s' }} title={`${d.date}: ${d.absent} absent`} />}
-              {d.late > 0 && <div style={{ height: `${lH}%`, background: STATUS_COLORS.late, minHeight: 1, transition: 'height .3s' }} title={`${d.date}: ${d.late} late`} />}
-              {d.present > 0 && <div style={{ height: `${pH}%`, background: STATUS_COLORS.present, minHeight: 1, transition: 'height .3s' }} title={`${d.date}: ${d.present} present`} />}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 130, padding: '4px 0' }}>
+        {dailyCounts.map(d => {
+          const dt = new Date(d.date + 'T00:00:00');
+          const dow = dt.getDay();
+          const dayName = DAY_ABBR[dow];
+          const pH = (d.present / maxVal) * 100;
+          const lH = (d.late / maxVal) * 100;
+          const aH = (d.absent / maxVal) * 100;
+          const leaveH = (d.leave / maxVal) * 100;
+          const dayPct = d.total > 0 ? Math.round((d.present / d.total) * 100) : 0;
+          return (
+            <div key={d.date} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, minWidth: 6, maxWidth: 34, position: 'relative' }}
+              title={`${dayName}, ${d.date}\nPresent: ${d.present} (${dayPct}%)\nLate: ${d.late}\nAbsent: ${d.absent}\nLeave: ${d.leave}`}>
+              <div style={{ position: 'relative', width: '100%', height: 100, borderRadius: 5, overflow: 'hidden', background: 'var(--surface2)' }}>
+                {d.leave > 0 && <div style={{ height: `${leaveH}%`, background: STATUS_COLORS.leave, minHeight: 2, transition: 'height .3s', width: '100%', position: 'absolute', bottom: 0 }} />}
+                {d.absent > 0 && <div style={{ height: `${aH}%`, background: STATUS_COLORS.absent, minHeight: 2, transition: 'height .3s', width: '100%', position: 'absolute', bottom: 0 }} />}
+                {d.late > 0 && <div style={{ height: `${lH}%`, background: STATUS_COLORS.late, minHeight: 2, transition: 'height .3s', width: '100%', position: 'absolute', bottom: 0 }} />}
+                {d.present > 0 && <div style={{ height: `${pH}%`, background: STATUS_COLORS.present, minHeight: 2, transition: 'height .3s', width: '100%', position: 'absolute', bottom: 0 }} />}
+              </div>
+              <span style={{ fontSize: 7, fontWeight: 800, color: 'var(--text3)', marginTop: 3, lineHeight: 1.1, textTransform: 'uppercase' }}>{dayName}</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text2)', marginTop: 1, lineHeight: 1 }}>{d.date.slice(8)}</span>
+              {d.total > 0 && (
+                <span style={{ fontSize: 7, fontWeight: 800, color: dayPct >= 80 ? STATUS_COLORS.present : dayPct >= 50 ? STATUS_COLORS.late : STATUS_COLORS.absent, marginTop: 1, lineHeight: 1 }}>
+                  {dayPct}%
+                </span>
+              )}
             </div>
-            <span style={{ fontSize: 8, fontWeight: 600, color: 'var(--text3)', marginTop: 2, lineHeight: 1 }}>{d.date.slice(8)}</span>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 6 }}>
+        {Object.entries(STATUS_COLORS).map(([k, v]) => (
+          <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 9, height: 9, borderRadius: 3, background: v }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)' }}>{STATUS_LABELS[k]}</span>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
 
-function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }) {
+function WeeklyTrend({ dailyCounts }) {
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekDates = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    weekDates.push(d.toISOString().slice(0, 10));
+  }
+
+  const weekData = weekDates.map(ds => dailyCounts.find(d => d.date === ds)).filter(Boolean);
+  if (weekData.length === 0) return null;
+
+  const totalPresent = weekData.reduce((s, d) => s + d.present, 0);
+  const totalLate = weekData.reduce((s, d) => s + d.late, 0);
+  const totalAbsent = weekData.reduce((s, d) => s + d.absent, 0);
+  const totalLeave = weekData.reduce((s, d) => s + d.leave, 0);
+  const totalMarked = totalPresent + totalLate + totalAbsent + totalLeave;
+  const weekPct = totalMarked > 0 ? Math.round(((totalPresent + totalLate) / totalMarked) * 100) : 0;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+      <div style={{ textAlign: 'center', minWidth: 72 }}>
+        <div style={{ fontSize: 22, fontWeight: 900, color: weekPct >= 80 ? STATUS_COLORS.present : weekPct >= 50 ? STATUS_COLORS.late : STATUS_COLORS.absent }}>{weekPct}%</div>
+        <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Sun–Fri</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {[
+          { label: 'Present', count: totalPresent, color: STATUS_COLORS.present, pct: totalMarked > 0 ? Math.round(totalPresent / totalMarked * 100) : 0 },
+          { label: 'Late', count: totalLate, color: STATUS_COLORS.late, pct: totalMarked > 0 ? Math.round(totalLate / totalMarked * 100) : 0 },
+          { label: 'Absent', count: totalAbsent, color: STATUS_COLORS.absent, pct: totalMarked > 0 ? Math.round(totalAbsent / totalMarked * 100) : 0 },
+          { label: 'Leave', count: totalLeave, color: STATUS_COLORS.leave, pct: totalMarked > 0 ? Math.round(totalLeave / totalMarked * 100) : 0 },
+        ].map(s => (
+          <div key={s.label} style={{ textAlign: 'center', padding: '6px 10px', borderRadius: 8, background: s.color + '0d', minWidth: 48 }}>
+            <div style={{ fontSize: 15, fontWeight: 900, color: s.color }}>{s.count}</div>
+            <div style={{ fontSize: 8, fontWeight: 700, color: 'var(--text3)' }}>{s.label}</div>
+            <div style={{ fontSize: 8, fontWeight: 600, color: s.color, opacity: 0.7 }}>{s.pct}%</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DateDetailPanel({ dateStr, attendanceData, filteredStudents }) {
   if (!dateStr) return null;
   const dayRec = attendanceData[dateStr] || {};
   const hasData = Object.keys(dayRec).length > 0;
@@ -117,6 +199,7 @@ function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }
     else if (st === 'leave') counts.leave++;
   });
   const marked = counts.present + counts.late + counts.absent + counts.leave;
+  const attendanceRate = marked > 0 ? Math.round(((counts.present + counts.late) / marked) * 100) : 0;
 
   const statusItems = [
     { key: 'present', icon: CheckCircle2, count: counts.present },
@@ -129,6 +212,8 @@ function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
   const isToday = dateStr === new Date().toISOString().slice(0, 10);
+
+  const absentStudents = filteredStudents.filter(s => dayRec[s.id] === 'absent' || dayRec[s.id] === 'late');
 
   return (
     <div style={{
@@ -144,9 +229,20 @@ function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }
             {isToday && <span style={{ marginLeft: 6, padding: '1px 8px', borderRadius: 10, background: 'var(--primary)', color: '#fff', fontSize: 9, fontWeight: 800, verticalAlign: 'middle' }}>TODAY</span>}
           </span>
         </div>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>
-          {marked}/{filteredStudents.length} marked
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {marked > 0 && (
+            <>
+              <Tooltip text={`${counts.present + counts.late} attended out of ${marked} marked records`}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: attendanceRate >= 80 ? STATUS_COLORS.present : STATUS_COLORS.absent }}>
+                  {attendanceRate}%
+                </span>
+              </Tooltip>
+            </>
+          )}
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>
+            {marked}/{filteredStudents.length} marked
+          </span>
+        </div>
       </div>
 
       {!hasData ? (
@@ -163,11 +259,17 @@ function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }
                 padding: '4px 12px', borderRadius: 20,
                 background: STATUS_COLORS[s.key] + '18',
                 color: STATUS_COLORS[s.key], fontSize: 12, fontWeight: 800,
-              }}>
+              }} title={`${s.count} ${s.key} (${marked > 0 ? Math.round(s.count / marked * 100) : 0}%)`}>
                 <s.icon size={12} /> {s.count} {STATUS_LABELS[s.key]}
               </span>
             ))}
           </div>
+
+          {absentStudents.length > 0 && (
+            <div style={{ marginBottom: 10, fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>
+              Students needing attention ({absentStudents.length}):
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {filteredStudents.map(s => {
@@ -206,7 +308,7 @@ function DateDetailPanel({ dateStr, attendanceData, students, filteredStudents }
 }
 
 export default function AttendanceReportsPage() {
-  const { attendanceData, students, currentRole, user, getTeacherClassrooms } = useApp();
+  const { attendanceData, setAttendanceData, students, currentRole, user, getTeacherClassrooms, hasAssignedClasses } = useApp();
 
   const now = new Date();
   const [selYear, setSelYear] = useState(now.getFullYear());
@@ -226,13 +328,37 @@ export default function AttendanceReportsPage() {
       list = child ? [child] : [];
     } else if (currentRole === 'teacher') {
       const assigned = getTeacherClassrooms(user?.email);
-      if (assigned) list = students.filter(s => assigned.includes(s.class));
+      if (assigned.length > 0) list = students.filter(s => assigned.includes(s.class));
+      else list = [];
     }
     if (classFilter) list = list.filter(s => s.class === classFilter);
     return list;
   }, [students, currentRole, user, classFilter, getTeacherClassrooms]);
 
-  const { monthDates, dailyCounts, summary, studentRows, calendarData } = useMemo(() => {
+  useEffect(() => {
+    const daysInMonth = new Date(selYear, selMonth, 0).getDate();
+    const monthStr = `${selYear}-${String(selMonth).padStart(2, '0')}`;
+    const datesToFetch = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = `${monthStr}-${String(d).padStart(2, '0')}`;
+      if (!attendanceData[ds]) datesToFetch.push(ds);
+    }
+    const fetchBatch = async () => {
+      for (const ds of datesToFetch.slice(0, 10)) {
+        try {
+          const res = await requestJSON(`${API_BASE}/attendance?date=${ds}`);
+          if (res && res.records && Object.keys(res.records).length > 0) {
+            setAttendanceData(prev => ({ ...prev, [ds]: res.records }));
+          }
+        } catch {
+          // silently skip — data will be fetched on next view
+        }
+      }
+    };
+    if (datesToFetch.length > 0) fetchBatch();
+  }, [selYear, selMonth, setAttendanceData, attendanceData]);
+
+  const { dailyCounts, summary, studentRows, calendarData } = useMemo(() => {
     const daysInMonth = new Date(selYear, selMonth, 0).getDate();
     const monthKeys = [];
     const dc = [];
@@ -267,6 +393,9 @@ export default function AttendanceReportsPage() {
       totDays, totPresent, totLate, totAbsent, totLeave, totalMarked,
       presentRate: totalMarked > 0 ? ((totPresent / totalMarked) * 100).toFixed(1) : '0',
       absentRate: totalMarked > 0 ? ((totAbsent / totalMarked) * 100).toFixed(1) : '0',
+      lateRate: totalMarked > 0 ? ((totLate / totalMarked) * 100).toFixed(1) : '0',
+      leaveRate: totalMarked > 0 ? ((totLeave / totalMarked) * 100).toFixed(1) : '0',
+      overallRate: totalMarked > 0 ? Math.round(((totPresent + totLate) / totalMarked) * 100) : 0,
     };
 
     const sRows = filteredStudents.map(s => {
@@ -286,7 +415,6 @@ export default function AttendanceReportsPage() {
   }, [selYear, selMonth, attendanceData, filteredStudents]);
 
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
 
   const goBack = () => { if (selMonth === 1) { setSelMonth(12); setSelYear(selYear - 1); } else { setSelMonth(selMonth - 1); } };
   const goForward = () => { if (selMonth === 12) { setSelMonth(1); setSelYear(selYear + 1); } else { setSelMonth(selMonth + 1); } };
@@ -295,7 +423,7 @@ export default function AttendanceReportsPage() {
     return (
       <div>
         <div className="page-title">Attendance Reports</div>
-        <div className="att-table-wrap" style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
           <Users size={32} style={{ marginBottom: 10, opacity: 0.3 }} />
           <div style={{ fontSize: 13, fontWeight: 700 }}>No child linked to your account.</div>
         </div>
@@ -303,53 +431,95 @@ export default function AttendanceReportsPage() {
     );
   }
 
+  if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
+    return (
+      <div>
+        <div className="page-title">Attendance Reports</div>
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700 }}>You must be assigned to a class by the admin to access this feature.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <div className="page-title">Attendance Reports</div>
+      <div className="page-title" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+        <BarChart3 size={20} style={{ color: 'var(--primary)' }} />
+        Attendance Reports
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginBottom: 20 }}>
+        Daily, weekly, and monthly attendance trends for {currentRole === 'parent' ? 'your child' : 'your classroom'}
+      </div>
 
-      {/* Filter bar */}
       <div style={{
         display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
-        background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
         padding: '12px 16px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface2)', borderRadius: 8, padding: '4px 4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--surface2)', borderRadius: 8, padding: '4px' }}>
           <button onClick={goBack} style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}><ChevronLeft size={14} /></button>
           <span style={{ fontSize: 13, fontWeight: 800, minWidth: 120, textAlign: 'center' }}>{monthNames[selMonth - 1]} {selYear}</span>
           <button onClick={goForward} style={{ width: 28, height: 28, border: 'none', background: 'transparent', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}><ChevronRight size={14} /></button>
         </div>
         {currentRole !== 'parent' && (
-          <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12, fontWeight: 600, outline: 'none' }}>
-            <option value="">All Classes</option>
-            {classrooms.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Filter size={13} style={{ color: 'var(--text3)' }} />
+            <select value={classFilter} onChange={e => setClassFilter(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12, fontWeight: 600, outline: 'none' }}>
+              <option value="">All Classes</option>
+              {classrooms.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
         )}
         <button onClick={() => { const t = new Date().toISOString().slice(0, 10); setSelectedDate(t); const d = new Date(); setSelMonth(d.getMonth() + 1); setSelYear(d.getFullYear()); }}
-          style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1.5px solid var(--primary)', background: 'var(--primary-pale)', color: 'var(--primary)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: "'Nunito',sans-serif", display: 'flex', alignItems: 'center', gap: 4 }}>
+          style={{ padding: '6px 14px', borderRadius: 8, border: '1.5px solid var(--primary)', background: 'var(--primary-pale)', color: 'var(--primary)', fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: "'Nunito',sans-serif", display: 'flex', alignItems: 'center', gap: 4 }}>
           <CalendarDays size={13} /> Today
         </button>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
-          {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} · {summary.totDays} days
+        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Users size={13} />
+          {filteredStudents.length} student{filteredStudents.length !== 1 ? 's' : ''} tracked
         </div>
       </div>
 
-      {/* Summary cards */}
+      <div style={{
+        marginBottom: 20, padding: '18px 22px', borderRadius: 12,
+        background: 'linear-gradient(135deg, var(--primary) 0%, #3b82c4 100%)', color: '#fff',
+        boxShadow: '0 4px 16px rgba(46,125,107,0.2)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, opacity: 0.8 }}>Overall Attendance</div>
+            <div style={{ fontSize: 38, fontWeight: 900, lineHeight: 1.1 }}>{summary.overallRate}%</div>
+            <div style={{ fontSize: 11, fontWeight: 600, opacity: 0.8 }}>
+              <Tooltip text={`${summary.totPresent} present, ${summary.totLate} late, ${summary.totAbsent} absent, ${summary.totLeave} leave — ${summary.totalMarked} total records`}>
+                {monthNames[selMonth - 1]} {selYear}
+              </Tooltip>
+              <span style={{ margin: '0 6px' }}>·</span>
+              {summary.totalMarked} records
+            </div>
+          </div>
+          <WeeklyTrend dailyCounts={dailyCounts} />
+        </div>
+      </div>
+
       <div className="att-summary-grid" style={{ marginBottom: 20 }}>
         {[
-          { label: 'Present', value: summary.totPresent, color: STATUS_COLORS.present, icon: TrendingUp, rate: summary.presentRate + '% attendance' },
-          { label: 'Late', value: summary.totLate, color: STATUS_COLORS.late, icon: Clock, rate: summary.totLate > 0 ? ((summary.totLate / summary.totalMarked) * 100).toFixed(1) + '%' : '0%' },
-          { label: 'Absent', value: summary.totAbsent, color: STATUS_COLORS.absent, icon: XCircle, rate: summary.absentRate + '% absentee' },
-          { label: 'Leave', value: summary.totLeave, color: STATUS_COLORS.leave, icon: CalendarOff, rate: summary.totLeave > 0 ? ((summary.totLeave / summary.totalMarked) * 100).toFixed(1) + '%' : '0%' },
+          { label: 'Present', value: summary.totPresent, color: STATUS_COLORS.present, icon: CheckCircle2, rate: summary.presentRate + '%', tooltip: 'Student was present for the full day' },
+          { label: 'Late', value: summary.totLate, color: STATUS_COLORS.late, icon: Clock, rate: summary.lateRate + '%', tooltip: 'Student arrived after scheduled start time' },
+          { label: 'Absent', value: summary.totAbsent, color: STATUS_COLORS.absent, icon: XCircle, rate: summary.absentRate + '%', tooltip: 'Student was not present at all' },
+          { label: 'Leave', value: summary.totLeave, color: STATUS_COLORS.leave, icon: CalendarOff, rate: summary.leaveRate + '%', tooltip: 'Student was on approved leave' },
         ].map(card => {
           const Icon = card.icon;
           return (
-            <div key={card.label} className="att-summary-card">
+            <div key={card.label} className="att-summary-card"
+              title={`${card.value} ${card.label.toLowerCase()} — ${card.rate} of ${summary.totalMarked} total records`}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: card.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: STATUS_BG[card.label.toLowerCase()] || (card.color + '18'), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon size={14} style={{ color: card.color }} />
                 </div>
                 <span className="att-summary-label">{card.label}</span>
+                <Tooltip text={card.tooltip} />
               </div>
               <div className="att-summary-value" style={{ color: card.color }}>{card.value}</div>
               <div className="att-summary-pct">{card.rate}</div>
@@ -358,20 +528,11 @@ export default function AttendanceReportsPage() {
         })}
       </div>
 
-      {/* Calendar + Chart row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 16, marginBottom: 20, alignItems: 'start' }}>
         <div className="att-calendar-wrap">
           <div className="att-calendar-title">
             <CalendarDays size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
             {monthNames[selMonth - 1]} {selYear}
-          </div>
-          <div className="att-legend">
-            {Object.entries(STATUS_COLORS).map(([k, v]) => (
-              <div key={k} className="att-legend-item">
-                <div className="att-legend-dot" style={{ background: v }} />
-                {STATUS_LABELS[k]}
-              </div>
-            ))}
           </div>
           <CalendarHeatmap
             data={calendarData}
@@ -379,34 +540,36 @@ export default function AttendanceReportsPage() {
             year={selYear}
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}
-            attendanceData={attendanceData}
-            filteredStudents={filteredStudents}
           />
         </div>
         <div className="att-calendar-wrap">
           <div className="att-calendar-title">
-            <TrendingUp size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
+            <BarChart3 size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
             Daily Breakdown
           </div>
           <DailyBarChart dailyCounts={dailyCounts} />
         </div>
       </div>
 
-      {/* Selected date detail — separated so calendar doesn't resize */}
       <div className="att-calendar-wrap" style={{ marginBottom: 20, padding: 0 }}>
         <DateDetailPanel
           dateStr={selectedDate}
           attendanceData={attendanceData}
-          students={students}
           filteredStudents={filteredStudents}
         />
       </div>
 
-      {/* Per-student table */}
       <div className="att-table-wrap">
         <div className="att-table-header">
-          <span>Student Breakdown</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>{studentRows.length} students</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <PieChart size={14} style={{ color: 'var(--primary)' }} />
+            Student Performance
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>
+            <Tooltip text={`Sorted by attendance rate descending. ${summary.totDays} days with data this month.`}>
+              {studentRows.length} students
+            </Tooltip>
+          </span>
         </div>
         <div style={{ overflowX: 'auto' }}>
           <table className="att-table">
@@ -414,18 +577,26 @@ export default function AttendanceReportsPage() {
               <tr>
                 <th>Student</th>
                 <th>Class</th>
-                <th style={{ color: STATUS_COLORS.present }}>Present</th>
-                <th style={{ color: STATUS_COLORS.late }}>Late</th>
-                <th style={{ color: STATUS_COLORS.absent }}>Absent</th>
-                <th style={{ color: STATUS_COLORS.leave }}>Leave</th>
-                <th>Total</th>
-                <th>Rate</th>
+                <th style={{ color: STATUS_COLORS.present }}>P</th>
+                <th style={{ color: STATUS_COLORS.late }}>L</th>
+                <th style={{ color: STATUS_COLORS.absent }}>A</th>
+                <th style={{ color: STATUS_COLORS.leave }}>LV</th>
+                <th title="Total number of days with a record">Total</th>
+                <th title="Attendance rate = (Present) / (Total marked days)">Rate</th>
               </tr>
             </thead>
             <tbody>
               {studentRows.map((s, i) => (
-                <tr key={s.id} style={{ background: i % 2 === 0 ? '#fff' : 'var(--surface2)' }}>
-                  <td style={{ fontWeight: 700 }}>{s.name}</td>
+                <tr key={s.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface2)' }}>
+                  <td style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{
+                      width: 22, height: 22, borderRadius: '50%',
+                      background: s.bg || 'var(--primary-pale)', color: s.col || 'var(--primary)',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 8, fontWeight: 800,
+                    }}>{s.init}</div>
+                    {s.name}
+                  </td>
                   <td style={{ color: 'var(--text3)' }}>{s.class}</td>
                   <td style={{ color: STATUS_COLORS.present, fontWeight: 700 }}>{s.p}</td>
                   <td style={{ color: STATUS_COLORS.late, fontWeight: 700 }}>{s.la}</td>
@@ -433,7 +604,7 @@ export default function AttendanceReportsPage() {
                   <td style={{ color: STATUS_COLORS.leave, fontWeight: 700 }}>{s.lv}</td>
                   <td style={{ fontWeight: 600 }}>{s.total}</td>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} title={`${s.name}: ${s.p} present, ${s.la} late, ${s.ab} absent, ${s.lv} leave out of ${s.total} days`}>
                       <span className="att-bar">
                         <span className="att-bar-fill" style={{ width: `${s.rate !== '-' ? s.rate : 0}%`, background: STATUS_COLORS.present }} />
                       </span>
