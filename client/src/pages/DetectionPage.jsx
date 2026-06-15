@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { GripVertical, Smartphone, Monitor } from 'lucide-react';
+
 import { queueSyncToDB } from '../utils/dbSync';
 
 export default function DetectionPage() {
@@ -8,14 +8,7 @@ export default function DetectionPage() {
   const [cameraOnline, setCameraOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [cameraSource, setCameraSource] = useState(() => localStorage.getItem('axion_camera_source') || 'local');
-  const [networkUrl, setNetworkUrl] = useState(() => localStorage.getItem('axion_network_url') || '');
-  const [connectedUrl, setConnectedUrl] = useState('');
-  const streamRef = useRef(null);
-  const videoRefs = useRef({});
-  const imgRefs = useRef({});
-  const playgroundRef = useRef(null);
-  const playgroundImgRef = useRef(null);
+
   const [cameraOrder, setCameraOrder] = useState(() => {
     try { return JSON.parse(localStorage.getItem('axion_camera_order')) || []; } catch { return []; }
   });
@@ -87,7 +80,7 @@ export default function DetectionPage() {
     }
   };
 
-  const startLocalCamera = async () => {
+
     setLoading(true);
     setErrorMsg('');
     try {
@@ -103,14 +96,6 @@ export default function DetectionPage() {
     }
   };
 
-  const connectNetworkCamera = () => {
-    if (!networkUrl.trim()) return;
-    setLoading(true);
-    setErrorMsg('');
-    setConnectedUrl(networkUrl.trim());
-    setCameraOnline(true);
-    setLoading(false);
-  };
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -122,29 +107,12 @@ export default function DetectionPage() {
       if (el) el.srcObject = null;
     });
     if (playgroundRef.current) playgroundRef.current.srcObject = null;
-    setConnectedUrl('');
-    setCameraOnline(false);
-  };
 
-  const switchSource = (source) => {
-    stopCamera();
-    setCameraSource(source);
-    localStorage.setItem('axion_camera_source', source);
-    if (source === 'local') {
-      startLocalCamera();
-    }
-  };
-
-  useEffect(() => {
-    if (cameraSource === 'local') {
-      startLocalCamera();
-    }
     return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
   }, []);
 
   useEffect(() => {
-    if (cameraOnline && cameraSource === 'local') setStreamOnAll();
-  }, [cameraOnline, cameraSource]);
+
 
   const setVideoRef = (cn) => (el) => {
     if (!el) return;
@@ -158,8 +126,6 @@ export default function DetectionPage() {
     if (streamRef.current && !el.srcObject) el.srcObject = streamRef.current;
   };
 
-  const setImgRef = (cn) => (el) => { imgRefs.current[cn] = el; };
-  const setPlaygroundImgRef = (el) => { playgroundImgRef.current = el; };
 
   if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
     return (
@@ -172,94 +138,7 @@ export default function DetectionPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-        <div className="page-title" style={{ margin: 0 }}>CCTV Monitoring</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 4, background: 'var(--bg2)', borderRadius: 8, padding: 3 }}>
-            <button
-              className={`btn btn-sm ${cameraSource === 'local' ? '' : ''}`}
-              style={{
-                background: cameraSource === 'local' ? 'var(--primary)' : 'transparent',
-                color: cameraSource === 'local' ? '#fff' : 'var(--text3)',
-                fontWeight: 700, fontSize: 11, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4
-              }}
-              onClick={() => switchSource('local')}
-            >
-              <Monitor size={14} /> PC
-            </button>
-            <button
-              className={`btn btn-sm ${cameraSource === 'network' ? '' : ''}`}
-              style={{
-                background: cameraSource === 'network' ? 'var(--primary)' : 'transparent',
-                color: cameraSource === 'network' ? '#fff' : 'var(--text3)',
-                fontWeight: 700, fontSize: 11, border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 4
-              }}
-              onClick={() => switchSource('network')}
-            >
-              <Smartphone size={14} /> Mobile
-            </button>
-          </div>
-          {cameraSource === 'network' && (
-            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <input
-                type="text"
-                value={networkUrl}
-                onChange={(e) => { setNetworkUrl(e.target.value); localStorage.setItem('axion_network_url', e.target.value); }}
-                placeholder="http://192.168.x.x:8080/video"
-                style={{
-                  padding: '5px 10px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border)',
-                  background: 'var(--bg)', color: 'var(--text)', width: 220, outline: 'none'
-                }}
-                onKeyDown={(e) => { if (e.key === 'Enter') connectNetworkCamera(); }}
-              />
-              {connectedUrl ? (
-                <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12 }} onClick={stopCamera}>Stop</button>
-              ) : (
-                <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={connectNetworkCamera}>Connect</button>
-              )}
-            </div>
-          )}
-          {cameraSource === 'local' && (
-            <>
-              <div style={{ display: 'flex', gap: 4 }}>
-                {visibleClassrooms.map(cn => (
-                  <div key={cn} style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#f0fdf4' : 'var(--primary-pale)', color: cameraOnline ? '#16a34a' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-                    ● {cn.length > 20 ? cn.substring(0, 18) + '..' : cn}
-                  </div>
-                ))}
-                <div style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#fef3c7' : 'var(--primary-pale)', color: cameraOnline ? '#d97706' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-                  ● Playground
-                </div>
-              </div>
-              {cameraOnline ? (
-                <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12 }} onClick={stopCamera}>Stop</button>
-              ) : !loading ? (
-                <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={startLocalCamera}>Retry Camera</button>
-              ) : null}
-            </>
-          )}
-        </div>
-      </div>
 
-      {errorMsg && (
-        <div style={{ padding: '10px 14px', background: '#fef2f2', color: '#dc2626', borderRadius: 8, fontSize: 13, fontWeight: 600, marginBottom: 12, border: '1px solid #fecaca' }}>
-          {errorMsg}
-        </div>
-      )}
-
-      {cameraSource === 'network' && !connectedUrl && (
-        <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600, background: 'var(--bg2)', borderRadius: 12, marginBottom: 12 }}>
-          <Smartphone size={40} style={{ opacity: 0.25, marginBottom: 12 }} />
-          <div>Enter your mobile camera URL above and click <strong>Connect</strong></div>
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text3)', fontWeight: 400, maxWidth: 400, margin: '8px auto 0' }}>
-            Install an IP camera app on your phone (e.g., "IP Webcam" on Android), start the server, and enter the URL shown in the app (e.g., http://192.168.x.x:8080/video)
-          </div>
-        </div>
-      )}
-
-      {!(cameraSource === 'network' && !connectedUrl) && (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 12, marginBottom: 16 }}>
         {orderedFeeds.length === 0 ? (
           <div style={{ gridColumn: '1/-1', padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
@@ -279,25 +158,7 @@ export default function DetectionPage() {
               onDragEnd={handleDragEnd}
             >
               <div style={{ position: 'relative' }}>
-                  <div className="camera-box" style={{ margin: 0, borderRadius: 0, aspectRatio: 'unset', height: 400, position: 'relative' }}>
-                    <div className="cam-grid" />
-                    <div className="cam-live-badge">● {cameraOnline ? 'LIVE' : loading ? 'STARTING...' : 'OFF'}</div>
-                    {cameraSource === 'network' && connectedUrl ? (
-                      <img
-                        ref={isPlayground ? setPlaygroundImgRef : setImgRef(cn)}
-                        src={connectedUrl}
-                        alt="Mobile camera feed"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        onError={() => { setErrorMsg('Failed to load network stream'); setCameraOnline(false); }}
-                      />
-                    ) : (
-                      <video
-                        ref={isPlayground ? setPlaygroundRef : setVideoRef(cn)}
-                        autoPlay playsInline muted
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                    )}
-                  </div>
+
                 <div draggable onDragStart={() => handleDragStart(idx)} style={{ position: 'absolute', top: 8, right: 8, cursor: 'grab', color: 'rgba(255,255,255,0.6)', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 4, display: 'flex' }}>
                   <GripVertical size={16} />
                 </div>
@@ -319,7 +180,7 @@ export default function DetectionPage() {
           );
         })}
       </div>
-      )}
+
 
       <div className="card">
         <div className="card-header">
