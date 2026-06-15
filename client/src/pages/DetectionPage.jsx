@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { GripVertical } from 'lucide-react';
+
 import { queueSyncToDB } from '../utils/dbSync';
 
 export default function DetectionPage() {
@@ -8,9 +8,7 @@ export default function DetectionPage() {
   const [cameraOnline, setCameraOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const streamRef = useRef(null);
-  const videoRefs = useRef({});
-  const playgroundRef = useRef(null);
+
   const [cameraOrder, setCameraOrder] = useState(() => {
     try { return JSON.parse(localStorage.getItem('axion_camera_order')) || []; } catch { return []; }
   });
@@ -82,7 +80,7 @@ export default function DetectionPage() {
     }
   };
 
-  const startCamera = async () => {
+
     setLoading(true);
     setErrorMsg('');
     try {
@@ -98,6 +96,7 @@ export default function DetectionPage() {
     }
   };
 
+
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
@@ -108,17 +107,12 @@ export default function DetectionPage() {
       if (el) el.srcObject = null;
     });
     if (playgroundRef.current) playgroundRef.current.srcObject = null;
-    setCameraOnline(false);
-  };
 
-  useEffect(() => {
-    startCamera();
     return () => { if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
   }, []);
 
   useEffect(() => {
-    if (cameraOnline) setStreamOnAll();
-  }, [cameraOnline]);
+
 
   const setVideoRef = (cn) => (el) => {
     if (!el) return;
@@ -132,6 +126,7 @@ export default function DetectionPage() {
     if (streamRef.current && !el.srcObject) el.srcObject = streamRef.current;
   };
 
+
   if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
     return (
       <div className="empty-state">
@@ -143,26 +138,6 @@ export default function DetectionPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div className="page-title" style={{ margin: 0 }}>CCTV Monitoring</div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {visibleClassrooms.map(cn => (
-              <div key={cn} style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#f0fdf4' : 'var(--primary-pale)', color: cameraOnline ? '#16a34a' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-                ● {cn.length > 20 ? cn.substring(0, 18) + '..' : cn}
-              </div>
-            ))}
-            <div style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#fef3c7' : 'var(--primary-pale)', color: cameraOnline ? '#d97706' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-              ● Playground
-            </div>
-          </div>
-          {cameraOnline ? (
-            <button className="btn btn-sm" style={{ background: '#fee2e2', color: '#dc2626', fontWeight: 700, fontSize: 12 }} onClick={stopCamera}>Stop</button>
-          ) : !loading ? (
-            <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={startCamera}>Retry Camera</button>
-          ) : null}
-        </div>
-      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 12, marginBottom: 16 }}>
         {orderedFeeds.length === 0 ? (
@@ -183,15 +158,7 @@ export default function DetectionPage() {
               onDragEnd={handleDragEnd}
             >
               <div style={{ position: 'relative' }}>
-                <div className="camera-box" style={{ margin: 0, borderRadius: 0, aspectRatio: 'unset', height: 400 }}>
-                  <div className="cam-grid" />
-                  <div className="cam-live-badge">● {cameraOnline ? 'LIVE' : loading ? 'STARTING...' : 'OFF'}</div>
-                  <video
-                    ref={isPlayground ? setPlaygroundRef : setVideoRef(cn)}
-                    autoPlay playsInline muted
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
+
                 <div draggable onDragStart={() => handleDragStart(idx)} style={{ position: 'absolute', top: 8, right: 8, cursor: 'grab', color: 'rgba(255,255,255,0.6)', background: 'rgba(0,0,0,0.3)', borderRadius: 6, padding: 4, display: 'flex' }}>
                   <GripVertical size={16} />
                 </div>
@@ -213,6 +180,7 @@ export default function DetectionPage() {
           );
         })}
       </div>
+
 
       <div className="card">
         <div className="card-header">
