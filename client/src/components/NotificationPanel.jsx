@@ -16,7 +16,7 @@ const TYPE_ICONS = {
 };
 
 export default function NotificationPanel({ open, onClose, onNavigate }) {
-  const { user } = useApp();
+  const { user, refreshNotifCount } = useApp();
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const socketRef = useRef(null);
@@ -51,12 +51,14 @@ export default function NotificationPanel({ open, onClose, onNavigate }) {
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
     setUnread(prev => Math.max(0, prev - 1));
     await requestJSON(`${API_BASE}/notifications/${notifId}/read`, { method: 'PATCH' }).catch(() => {});
+    refreshNotifCount();
   };
 
   const markAllAsRead = async () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnread(0);
     await requestJSON(`${API_BASE}/notifications/read-all`, { method: 'POST' }).catch(() => {});
+    refreshNotifCount();
   };
 
   const handleClick = (n) => {

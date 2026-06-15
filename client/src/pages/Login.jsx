@@ -64,9 +64,6 @@ export default function Login() {
     try {
       await doLogin(email, password);
     } catch (e) {
-      const fallbacks = { 'admin@axion.edu': 'admin', 'anika@axion.edu': 'teacher', 'lena@axion.edu': 'parent' };
-      const match = Object.entries(fallbacks).find(([em]) => em === email);
-      if (match) { mockLogin(match[1], email); return; }
       if (e.message === 'Failed to fetch') { mockLogin(role, email); return; }
       setError(e.message);
       setBusy(false);

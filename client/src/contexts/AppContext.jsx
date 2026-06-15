@@ -172,9 +172,13 @@ export function AppProvider({ children }) {
       });
     });
 
-    socket.on('notification', (notif) => {
-      refreshNotifCount();
-    });
+      socket.on('notification', (notif) => {
+        refreshNotifCount();
+      });
+
+      socket.on('notifications-read', () => {
+        refreshNotifCount();
+      });
 
     socket.on('daily_logs_updated', () => {
       requestJSON(`${API_BASE}/data/axion_daily_logs`).then(blob => {
@@ -923,7 +927,7 @@ export function AppProvider({ children }) {
     activities, setActivities,
     announcements, setAnnouncements,
 
-    notifCount, setNotifCount,
+    notifCount, setNotifCount, refreshNotifCount,
     notifOpen, setNotifOpen,
     activeModal, modalData, openModal, closeModal,
     toastMessage, showToast,
