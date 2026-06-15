@@ -333,7 +333,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);disp
 .notif-item{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
 .notif-item:hover{background:var(--surface2)}
 .notif-item:last-child{border-bottom:none}
-.notif-item-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.notif-item:hover .notif-delete{opacity:1 !important}
 .notif-item-sub{font-size:12px;color:var(--text3);font-weight:600}
 .notif-unread{border-left:3px solid var(--primary);padding-left:13px}
 

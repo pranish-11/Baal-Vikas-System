@@ -1,4 +1,5 @@
 const { Server } = require("socket.io");
+const prisma = require("./lib/prisma");
 
 let io = null;
 
@@ -10,7 +11,6 @@ function setupSocket(server) {
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
 
-    // Join a room for the user (identified by userId)
     socket.on("join", (userId) => {
       if (userId) {
         socket.join(userId);
@@ -18,7 +18,6 @@ function setupSocket(server) {
       }
     });
 
-    // Broadcast new message to all participants in real-time
     socket.on("send_message", (data) => {
       const { recipientIds, threadId, message, senderId } = data;
       const ids = Array.isArray(recipientIds) ? recipientIds : [recipientIds];
@@ -33,12 +32,18 @@ function setupSocket(server) {
       }
     });
 
-    // Update userId association after auth
-    socket.on("identify", (userId) => {
-      if (userId) {
-        socket.userId = userId;
-        socket.join(userId);
-        console.log(`Socket ${socket.id} identified as user ${userId}`);
+    socket.on("identify", async (userId, email) => {
+      let resolvedId = userId;
+      if (email) {
+        try {
+          const dbUser = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+          if (dbUser) resolvedId = dbUser.id;
+        } catch {}
+      }
+      if (resolvedId) {
+        socket.userId = resolvedId;
+        socket.join(resolvedId);
+        console.log(`Socket ${socket.id} identified as user ${resolvedId}${resolvedId !== userId ? ' (resolved from ' + userId + ')' : ''}`);
       }
     });
 

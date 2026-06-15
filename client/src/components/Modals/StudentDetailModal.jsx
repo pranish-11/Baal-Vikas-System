@@ -29,10 +29,10 @@ export default function StudentDetailModal({ open, onClose }) {
         <div style={{ background: `linear-gradient(135deg,${student.bg || 'var(--primary)'} 0%,${(student.bg || 'var(--primary)')}dd 100%)`, padding: '24px 28px 20px', textAlign: 'center', position: 'relative' }}>
           <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 16, background: 'rgba(255,255,255,0.25)', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', color: '#fff', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>X</button>
           <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fff', color: student.col || 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, margin: '0 auto 10px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-            {student.init}
+            {student.init || '??'}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{student.name}</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>{mainClass} · Age {student.age}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: student.col || '#fff' }}>{student.name || ''}</div>
+          <div style={{ fontSize: 13, color: student.col || 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>{mainClass} · Age {student.age || ''}</div>
         </div>
         <div style={{ padding: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>

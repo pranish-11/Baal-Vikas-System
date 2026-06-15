@@ -95,6 +95,7 @@ model Student {
 model MessageThread {
   id             String        @id @default(auto()) @map("_id") @db.ObjectId
   participantIds String[]
+  readBy         String[]
   
   preview    String?
   timeLabel  String
@@ -239,4 +240,20 @@ model DataBlob {
   data      String   // JSON string
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Centralized notifications for all users
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   // recipient user id
+  role      String   // ADMIN | TEACHER | PARENT (denormalized for filtering)
+  title     String
+  body      String
+  type      String   // complaint | daily_log | activity | attendance | observation | message | notice | behavior
+  link      String?  // optional navigation path
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([createdAt])
 }

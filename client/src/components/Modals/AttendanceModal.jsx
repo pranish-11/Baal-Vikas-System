@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { ClipboardCheck, Calendar, CheckCircle2, Clock, XCircle, CalendarOff, Save, Layers } from 'lucide-react';
 
-export default function AttendanceModal({ open, onClose }) {
+export default function AttendanceModal({ open, onClose, data }) {
   const { students, attendanceData, todayStr, saveAttendance, currentRole, user, getTeacherClassrooms } = useApp();
-  const dateStr = todayStr();
+  const dateStr = data?.date || todayStr();
   const [draft, setDraft] = useState({});
 
   useEffect(() => {

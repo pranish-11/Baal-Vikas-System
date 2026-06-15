@@ -11,7 +11,7 @@ const SUBTITLES = {
   myChild: 'Your child\'s progress',
 };
 
-export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, notifDot, onOpenSearch }) {
+export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, notifCount, onOpenSearch }) {
   const { currentPage, roleConfig, currentRole, openModal } = useApp();
   const d = NAV_DEFS[currentPage];
   const title = d?.label || currentPage;
@@ -35,7 +35,20 @@ export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, noti
         </div>
         <div className="icon-btn" onClick={onToggleNotif} title="Notifications">
           <Bell size={20} />
-          {notifDot && <div className="dot" />}
+          {notifCount > 0 && (
+            <span style={{
+              position: 'absolute', top: -4, right: -4,
+              minWidth: 18, height: 18, borderRadius: 9,
+              background: '#ef4444', color: '#fff',
+              fontSize: 10, fontWeight: 800,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '0 4px',
+              border: '2px solid #fff',
+              boxShadow: '0 2px 6px rgba(239,68,68,0.4)',
+            }}>
+              {notifCount > 99 ? '99+' : notifCount}
+            </span>
+          )}
         </div>
         {(currentRole === 'admin' || currentRole === 'teacher') && (
           <button className="btn btn-sm" style={{ background: 'var(--coral-pale)', color: 'var(--coral)', border: '1.5px solid var(--coral)', fontWeight: 800, marginRight: 6 }}
