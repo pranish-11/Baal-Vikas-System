@@ -5,7 +5,7 @@ import StudentCard from '../components/Students/StudentCard';
 import AttendanceBar from '../components/Students/AttendanceBar';
 
 export default function StudentsPage() {
-  const { students, attendanceData, openModal, setCurrentStudentFilter, currentRole, user, getTeacherClassrooms, selectedAttendanceDate } = useApp();
+  const { students, attendanceData, openModal, setCurrentStudentFilter, currentRole, user, getTeacherClassrooms, selectedAttendanceDate, getAllClasses, hasAssignedClasses } = useApp();
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -15,7 +15,8 @@ export default function StudentsPage() {
   let visibleStudents = students;
   if (currentRole === 'teacher') {
     const assigned = getTeacherClassrooms(user?.email);
-    if (assigned) visibleStudents = students.filter(s => assigned.includes(s.class));
+    if (assigned.length > 0) visibleStudents = students.filter(s => assigned.includes(s.class));
+    else visibleStudents = [];
   }
 
   let filtered = visibleStudents;
@@ -29,15 +30,29 @@ export default function StudentsPage() {
     filtered = filtered.filter(s => s.name.toLowerCase().includes(q) || s.class.toLowerCase().includes(q));
   }
 
+  const isFiltering = filter !== 'all' || !!search;
+
   const classrooms = useMemo(() => {
     const map = {};
+    if (currentRole === 'admin') {
+      getAllClasses().forEach(cls => { map[cls] = []; });
+    }
     (currentRole === 'admin' ? visibleStudents : filtered).forEach(s => {
       const cls = s.class || 'Unassigned';
       if (!map[cls]) map[cls] = [];
       map[cls].push(s);
     });
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-  }, [currentRole, visibleStudents, filtered]);
+  }, [currentRole, visibleStudents, filtered, getAllClasses]);
+
+  if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text3)', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <p>You must be assigned to a class by the admin to access this feature.</p>
+      </div>
+    );
+  }
 
   const chips = [
     { key: 'all', label: 'All Students' },
@@ -101,7 +116,7 @@ export default function StudentsPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {classrooms.map(([cls, students]) => {
             const classFiltered = filtered.filter(s => (s.class || 'Unassigned') === cls);
-            if (classFiltered.length === 0) return null;
+            if (classFiltered.length === 0 && isFiltering) return null;
             return (
               <div key={cls}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -111,13 +126,19 @@ export default function StudentsPage() {
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{cls}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{students.length} student{students.length !== 1 ? 's' : ''}</div>
                 </div>
-                <div className="student-grid">
-                  {classFiltered.map(s => (
-                    <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer' }}>
-                      <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
-                    </div>
-                  ))}
-                </div>
+                {classFiltered.length === 0 ? (
+                  <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 13, fontWeight: 600, background: 'var(--surface2)', borderRadius: 10 }}>
+                    No students in this class yet.
+                  </div>
+                ) : (
+                  <div className="student-grid">
+                    {classFiltered.map(s => (
+                      <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer' }}>
+                        <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
-const { notifyParent, buildAwardMessage } = require("./notificationService");
+const { notifyParent, buildAwardMessage, buildBehaviourMessage } = require("./notificationService");
+const { getIO } = require("../socket");
 
 // Helper to determine text color based on background
 function getTextColorForBg(bgColor) {
@@ -112,42 +113,53 @@ async function awardPoints(id, data, actorId) {
     throw err;
   }
 
-  const student = await prisma.student.update({
-    where: { id },
-    data: {
-      behaviorScore: {
-        increment: data.points,
-      },
-    },
-  });
-
   const timeLabel = new Date().toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  if (data.description) {
-    await prisma.activity.create({
+  const ops = [
+    prisma.student.update({
+      where: { id },
       data: {
-        title: `Awarded ${data.points} points to ${student.fullName}`,
-        desc: data.description,
-        icon: "🌟",
-        timeLabel,
-        studentId: id,
+        behaviorScore: { increment: data.points },
       },
-    });
+    }),
+  ];
+
+  if (data.description) {
+    ops.push(
+      prisma.activity.create({
+        data: {
+          title: `Awarded ${data.points} points to ${existing.fullName}`,
+          desc: data.description,
+          icon: "🌟",
+          timeLabel,
+          studentId: id,
+        },
+      })
+    );
   }
 
-  // Auto-notify parent about the points award
+  const [student] = await prisma.$transaction(ops);
+
   let notification = { sent: false };
   if (actorId && data.description) {
     const msg = buildAwardMessage(student.fullName, data.points, data.description);
     notification = await notifyParent(id, msg, actorId);
   }
 
+  try {
+    const io = getIO();
+    if (io) {
+      io.emit("award_updated", { studentId: id, pts: student.behaviorScore });
+    }
+  } catch (e) {}
+
   return {
     id: student.id,
     pts: student.behaviorScore,
+    pct: student.attendancePct,
     notification,
   };
 }
@@ -237,7 +249,7 @@ async function removeStudent(id) {
   }
 }
 
-async function updateBehaviourScore(id, delta) {
+async function updateBehaviourScore(id, delta, actorId, description) {
   const existing = await prisma.student.findUnique({ where: { id } });
   if (!existing) {
     const err = new Error("Student not found");
@@ -246,12 +258,52 @@ async function updateBehaviourScore(id, delta) {
   }
 
   const newPct = Math.max(0, Math.min(100, (existing.attendancePct || 0) + delta));
-  await prisma.student.update({
-    where: { id },
-    data: { attendancePct: newPct },
-  });
+  const isPositive = delta > 0;
 
-  return { pct: newPct };
+  const ops = [
+    prisma.student.update({
+      where: { id },
+      data: {
+        attendancePct: newPct,
+      },
+    }),
+  ];
+
+  if (description) {
+    const timeLabel = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    ops.push(
+      prisma.activity.create({
+        data: {
+          title: isPositive
+            ? `Positive behaviour +${delta} for ${existing.fullName}`
+            : `Negative behaviour ${delta} for ${existing.fullName}`,
+          desc: description,
+          icon: isPositive ? "🌟" : "⚠️",
+          timeLabel,
+          studentId: id,
+        },
+      })
+    );
+  }
+
+  await prisma.$transaction(ops);
+
+  if (actorId && description) {
+    const msg = buildBehaviourMessage(existing.fullName, delta, description);
+    await notifyParent(id, msg, actorId).catch(() => {});
+  }
+
+  try {
+    const io = getIO();
+    if (io) {
+      io.emit("behaviour_updated", { studentId: id, pct: newPct });
+    }
+  } catch (e) {}
+
+  return { pts: existing.behaviorScore, pct: newPct };
 }
 
 module.exports = { getStudents, createStudent, awardPoints, updateParent, updateStudent, removeStudent, updateBehaviourScore };

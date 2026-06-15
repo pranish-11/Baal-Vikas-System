@@ -56,7 +56,7 @@ async function deleteStudent(req, res, next) {
 
 async function updateBehaviourScoreOfStudent(req, res, next) {
   try {
-    const result = await updateBehaviourScore(req.params.id, req.body.delta);
+    const result = await updateBehaviourScore(req.params.id, req.body.delta, req.user?.userId, req.body.description);
     res.json(result);
   } catch (error) {
     next(error);

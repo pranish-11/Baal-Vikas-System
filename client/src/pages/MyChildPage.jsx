@@ -116,11 +116,12 @@ export default function MyChildPage() {
   const weekData = useMemo(() => {
     const dates = [];
     const n = new Date();
-    const d2 = n.getDay();
-    const df = n.getDate() - d2 + (d2 === 0 ? -6 : 1);
-    for (let i = 0; i < 5; i++) {
-      const d3 = new Date(n);
-      d3.setDate(df + i);
+    const dow = n.getDay();
+    const sun = new Date(n);
+    sun.setDate(n.getDate() - dow);
+    for (let i = 0; i < 6; i++) {
+      const d3 = new Date(sun);
+      d3.setDate(sun.getDate() + i);
       dates.push(d3.toISOString().slice(0, 10));
     }
     const present = dates.filter(d => (attendanceData[d] || {})[myChild.id] === 'present').length;
@@ -129,7 +130,7 @@ export default function MyChildPage() {
     const marked = dates.filter(d => (attendanceData[d] || {})[myChild.id] !== null).length;
     const rate = marked > 0 ? Math.round(present / marked * 100) : 0;
     const statuses = dates.map(d => (attendanceData[d] || {})[myChild.id] || null);
-    return { dates, present, late, absent, rate, statuses, dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
+    return { dates, present, late, absent, rate, statuses, dayLabels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
   }, [myChild.id, attendanceData]);
 
   const tags = teacherTags[myChild.id] || [];
@@ -139,18 +140,19 @@ export default function MyChildPage() {
   const getWeekDates = () => {
     const dates = [];
     const now = new Date();
-    const day = now.getDay();
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-    for (let i = 0; i < 5; i++) {
-      const d = new Date(now.setDate(diff + i));
-      if (i > 0) now.setDate(now.getDate() + 1);
+    const dow = now.getDay();
+    const sun = new Date(now);
+    sun.setDate(now.getDate() - dow);
+    for (let i = 0; i < 6; i++) {
+      const d = new Date(sun);
+      d.setDate(sun.getDate() + i);
       dates.push(d.toISOString().slice(0, 10));
     }
     return dates;
   };
 
   const weekDates = getWeekDates();
-  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
   const weekStatuses = weekDates.map(d => {
     const dayRec = attendanceData[d] || {};
     return dayRec[myChild.id] || null;
@@ -298,9 +300,9 @@ export default function MyChildPage() {
         </div>
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
-            <div style={{ padding: '12px 8px', borderRadius: 12, background: todayStatus === 'present' ? '#e8f5e9' : todayStatus === 'late' ? '#fff3e0' : todayStatus === 'absent' ? '#ffebee' : '#f5f5f5', textAlign: 'center' }}>
+            <div style={{ padding: '12px 8px', borderRadius: 12, background: todayStatus === 'present' ? '#f0fdf4' : todayStatus === 'late' ? '#fff7ed' : todayStatus === 'absent' ? '#fef2f2' : '#f5f5f5', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 4 }}>Today</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: todayStatus === 'present' ? '#2e7d32' : todayStatus === 'late' ? '#e65100' : todayStatus === 'absent' ? '#c62828' : 'var(--text3)' }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: todayStatus === 'present' ? '#22c55e' : todayStatus === 'late' ? '#f97316' : todayStatus === 'absent' ? '#ef4444' : 'var(--text3)' }}>
                 {todayStatus === 'present' ? '✓' : todayStatus === 'late' ? '⏰' : todayStatus === 'absent' ? '✗' : todayStatus === 'leave' ? '📅' : '—'}
               </div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>
@@ -317,10 +319,10 @@ export default function MyChildPage() {
               <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--primary)' }}>{realPct}%</div>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>Score</div>
             </div>
-            <div style={{ padding: '12px 8px', borderRadius: 12, background: '#e3f2fd', textAlign: 'center' }}>
+            <div style={{ padding: '12px 8px', borderRadius: 12, background: '#f0fdf4', textAlign: 'center' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)', marginBottom: 4 }}>Attendance</div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#1565c0' }}>{weekData.rate}%</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>This Week</div>
+              <div style={{ fontSize: 22, fontWeight: 900, color: '#22c55e' }}>{weekData.rate}%</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>Sun–Fri</div>
             </div>
           </div>
 
@@ -393,7 +395,7 @@ export default function MyChildPage() {
               <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
                 {weekData.dayLabels.map((label, i) => {
                   const st = weekData.statuses[i];
-                  const dotColor = st === 'present' ? '#2e7d32' : st === 'late' ? '#e65100' : st === 'absent' ? '#c62828' : '#e0e0e0';
+                  const dotColor = st === 'present' ? '#22c55e' : st === 'late' ? '#f97316' : st === 'absent' ? '#ef4444' : '#e0e0e0';
                   return (
                     <div key={label} style={{ textAlign: 'center' }}>
                       <div style={{ width: 28, height: 28, borderRadius: '50%', background: dotColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
@@ -765,7 +767,7 @@ export default function MyChildPage() {
                     {st ? (
                       <div className="stu-bar" style={{
                         width: `${barWidth}%`,
-                        background: isPresent ? 'var(--primary)' : st === 'late' ? 'var(--gold)' : st === 'absent' ? 'var(--coral)' : 'var(--lavender)'
+                        background: isPresent ? '#22c55e' : st === 'late' ? '#f97316' : st === 'absent' ? '#ef4444' : '#a855f7'
                       }} />
                     ) : (
                       <div style={{ height: 8, borderRadius: 4, background: 'var(--border)' }} />

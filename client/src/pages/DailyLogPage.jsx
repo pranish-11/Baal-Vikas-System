@@ -26,7 +26,7 @@ function todayStr() {
 }
 
 export default function DailyLogPage() {
-  const { students, setActivities, activities, showToast, currentRole, user, getTeacherClassrooms, dailyLogs, setDailyLogs } = useApp();
+  const { students, setActivities, activities, showToast, currentRole, user, getTeacherClassrooms, dailyLogs, setDailyLogs, hasAssignedClasses } = useApp();
   const [logs, setLogs] = useState({});
   const logsRef = useRef(logs);
   logsRef.current = logs;
@@ -37,7 +37,7 @@ export default function DailyLogPage() {
   const todayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   const visibleStudents = currentRole === 'teacher'
-    ? (() => { const a = getTeacherClassrooms(user?.email); return a ? students.filter(s => a.includes(s.class)) : students; })()
+    ? (() => { const a = getTeacherClassrooms(user?.email); return a.length > 0 ? students.filter(s => a.includes(s.class)) : []; })()
     : students;
 
   useEffect(() => {
@@ -220,6 +220,15 @@ export default function DailyLogPage() {
       <div className="empty-state">
         <div className="empty-icon"><Sparkles size={32} /></div>
         <p>No students registered yet.</p>
+      </div>
+    );
+  }
+
+  if (currentRole === 'teacher' && !hasAssignedClasses(user?.email)) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text3)', opacity: 0.3 }}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <p>You must be assigned to a class by the admin to access this feature.</p>
       </div>
     );
   }

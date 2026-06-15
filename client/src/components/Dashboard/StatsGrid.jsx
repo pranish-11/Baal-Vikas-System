@@ -14,7 +14,6 @@ const ICON_MAP = {
 export default function StatsGrid() {
   const { currentRole, students, complaints, messages, attendanceData, user, getTeacherClassrooms, navTo } = useApp();
 
-  // Filter students by teacher's assigned classrooms
   let visibleStudents = students;
   if (currentRole === 'teacher') {
     const assigned = getTeacherClassrooms(user?.email);
@@ -29,7 +28,11 @@ export default function StatsGrid() {
   const openComplaints = complaints.filter(c => c.status === 'open' || c.status === 'in-progress' || c.status === 'escalated').length;
   const unreadMessages = messages.filter(m => m.unread).length;
 
-  const NAV_MAP = { 'Present Today': 'students', 'Total Students': 'students', 'Unread Messages': 'messages', 'Total Points': 'leaderboard', 'Open Complaints': 'complaints', 'Behavior Score': 'myChild', 'Attendance': 'myChild' };
+  const childId = currentRole === 'parent' ? students.find(s => s.parentEmail === user?.email || s.parentName === user?.name)?.id : null;
+  const todayStatus = childId ? (rec[childId] || null) : null;
+  const attLabel = todayStatus === 'present' ? 'Present' : todayStatus === 'late' ? 'Late' : todayStatus === 'absent' ? 'Absent' : todayStatus === 'leave' ? 'Leave' : '—';
+
+  const NAV_MAP = { 'Present Today': 'students', 'Total Students': 'students', 'Unread Messages': 'messages', 'Total Points': 'leaderboard', 'Open Complaints': 'complaints', 'Behavior Score': 'myChild', 'Today\'s Attendance': 'myChild' };
 
   const roleStats = {
     admin: [
@@ -46,7 +49,7 @@ export default function StatsGrid() {
     ],
     parent: [
       { icon: 'star', bg: 'var(--primary-pale)', val: students[0]?.pct || 0, label: 'Behavior Score', tag: `${students[0]?.pts || 0} pts total`, tagClass: 'tag-green' },
-      { icon: 'calendar', bg: 'var(--gold-pale)', val: `${students[0]?.pct || 0}%`, label: 'Attendance', tag: students[0]?.class || 'Not assigned', tagClass: 'tag-gold' },
+      { icon: 'calendar', bg: 'var(--gold-pale)', val: attLabel, label: "Today's Attendance", tag: childId ? `${students[0]?.class || ''}` : 'Not assigned', tagClass: 'tag-gold' },
       { icon: 'message', bg: 'var(--sky-pale)', val: unreadMessages, label: 'Unread Messages', tag: unreadMessages > 0 ? 'Reply today' : 'All read', tagClass: 'tag-blue' },
       { icon: 'clip', bg: 'var(--coral-pale)', val: openComplaints, label: 'Open Complaints', tag: openComplaints > 0 ? 'Pending' : 'All resolved', tagClass: 'tag-orange' },
     ],

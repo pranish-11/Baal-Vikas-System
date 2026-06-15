@@ -27,17 +27,15 @@ export default function AddBehaviourModal({ open, onClose }) {
     if (!student) return;
     onClose();
 
-    const pctDelta = effectiveDelta > 0 ? 2 : -2;
-
     requestJSON(`${API_BASE}/students/${student.id}/behaviour`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ delta: pctDelta }),
+      body: JSON.stringify({ delta: effectiveDelta, description: description.trim() }),
     }).then(() => {
       refreshData();
       showToast(`Behaviour logged`);
     }).catch(() => {
-      student.pct = Math.max(0, Math.min(100, (student.pct || 0) + pctDelta));
+      student.pct = Math.max(0, Math.min(100, (student.pct || 0) + effectiveDelta));
       setStudents([...students]);
       showToast(`Behaviour logged (offline)`);
     });

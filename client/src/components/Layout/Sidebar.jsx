@@ -11,7 +11,7 @@ function NavIcon({ name }) {
 }
 
 export default function Sidebar({ open, onClose }) {
-  const { currentRole, currentPage, setCurrentPage, user, logout, roleConfig, navTo } = useApp();
+  const { currentRole, currentPage, setCurrentPage, user, logout, roleConfig, navTo, hasAssignedClasses, getTeacherClassName } = useApp();
   const fileRef = useRef(null);
   const AVATAR_KEY = getAvatarKey(user?.email);
   const [avatarSrc, setAvatarSrc] = useState(() => localStorage.getItem(AVATAR_KEY));
@@ -48,7 +48,7 @@ export default function Sidebar({ open, onClose }) {
       <div className={`sidebar${open ? ' open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-wordmark">Axi<span>on</span></div>
-          <div className="sidebar-school">{roleConfig?.school || 'Sunrise Montessori'}</div>
+          <div className="sidebar-school">{currentRole === 'teacher' ? (hasAssignedClasses(user?.email) ? getTeacherClassName(user?.email) : 'Not Assigned') : 'School'}</div>
         </div>
         <div className="sidebar-nav">
           {navItems.map(item => (
