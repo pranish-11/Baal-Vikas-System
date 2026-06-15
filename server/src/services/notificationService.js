@@ -78,10 +78,18 @@ async function markRead(notifId, userIds) {
 
 async function markAllRead(userIds) {
   const ids = Array.isArray(userIds) ? userIds : [userIds];
-  return prisma.notification.updateMany({
+  const result = await prisma.notification.updateMany({
     where: { userId: { in: ids }, read: false },
     data: { read: true },
   });
+  // Broadcast to all connected clients so badge refreshes instantly
+  const io = getIO();
+  if (io) {
+    for (const uid of ids) {
+      io.to(uid).emit("notifications-read");
+    }
+  }
+  return result;
 }
 
 async function deleteAllRead(userIds) {
