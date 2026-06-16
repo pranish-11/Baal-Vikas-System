@@ -234,6 +234,30 @@ async function notifyTeachers(title, body, type, link) {
   }
 }
 
+async function notifyAllParents(title, body, type, link) {
+  try {
+    const parents = await prisma.user.findMany({ where: { role: "PARENT" } });
+    const seen = new Set();
+    for (const p of parents) {
+      const extra = [];
+      const emailId = getEmailBasedId(p.email);
+      if (emailId) extra.push(emailId);
+      const demoId = DEMO_EMAIL_TO_ID[p.email];
+      if (demoId) extra.push(demoId);
+      await createNotification({ userId: p.id, role: "PARENT", title, body, type, link, extraUserIds: extra });
+      seen.add(p.id);
+    }
+    // Fallback for demo parent token
+    const demoParentId = '000000000000000000000002';
+    if (!seen.has(demoParentId)) {
+      const extra = [getEmailBasedId('lena@axion.edu')].filter(Boolean);
+      await createNotification({ userId: demoParentId, role: "PARENT", title, body, type, link, extraUserIds: extra });
+    }
+  } catch (err) {
+    console.error("[notifyAllParents] Error:", err.message);
+  }
+}
+
 module.exports = {
   createNotification,
   getNotifications,
@@ -250,4 +274,5 @@ module.exports = {
   notifyParentViaNotification,
   notifyAdmins,
   notifyTeachers,
+  notifyAllParents,
 };

@@ -863,13 +863,18 @@ export function AppProvider({ children }) {
 
   const [announcements, setAnnouncements] = useState([]);
 
-  const addAnnouncement = useCallback((title, body, targetRole) => {
-    const a = { id: 'ann-' + Date.now(), title, body, targetRole: targetRole || 'all', by: user?.name || currentRole, time: new Date().toLocaleString(), createdAt: new Date().toISOString() };
-    const updated = [a, ...announcements];
-    setAnnouncements(updated);
-    showToast('Announcement sent!');
-    pushNotif('New Announcement', `${title} — ${by}`);
-  }, [announcements, user, currentRole, showToast, pushNotif]);
+  const addAnnouncement = useCallback(async (title, body, targetRole) => {
+    try {
+      await requestJSON(`${API_BASE}/notifications/announce`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, body, targetRole: targetRole || 'all' }),
+      });
+      showToast('Announcement sent!');
+    } catch (e) {
+      showToast(e.message || 'Failed to send announcement');
+    }
+  }, [showToast]);
 
   // Attendance helpers
   const todayStr = useCallback(() => new Date().toISOString().slice(0, 10), []);

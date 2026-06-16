@@ -1,4 +1,4 @@
-const complaintService = require("../services/complaintService");
+const { getComplaints, replyToComplaint, resolveComplaint, createComplaint, escalateComplaint } = require("../services/complaintService");
 const { notifyAdmins } = require("../services/notificationService");
 const { getIO } = require("../socket");
 

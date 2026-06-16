@@ -3,7 +3,7 @@ import { useApp } from '../../contexts/AppContext';
 import { Trash2 } from 'lucide-react';
 
 export default function StudentDetailModal({ open, onClose }) {
-  const { students, currentStudentFilter, openModal, showToast, deleteStudent, submitEditStudent, getAllClasses } = useApp();
+  const { students, currentStudentFilter, openModal, showToast, deleteStudent, submitEditStudent, getAllClasses, teacherTags } = useApp();
   const [changingClass, setChangingClass] = useState(false);
   const [newClass, setNewClass] = useState('');
 
@@ -35,6 +35,15 @@ export default function StudentDetailModal({ open, onClose }) {
           <div style={{ fontSize: 13, color: student.col || 'rgba(255,255,255,0.85)', fontWeight: 600, marginTop: 2 }}>{mainClass} · Age {student.age || ''}</div>
         </div>
         <div style={{ padding: 24 }}>
+          {teacherTags?.[student.id]?.length > 0 && (
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>
+              {teacherTags[student.id].map(t => (
+                <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '3px 12px', borderRadius: 12, background: '#f0f0ff', color: '#6366f1', lineHeight: '18px', display: 'inline-block', whiteSpace: 'nowrap' }}>
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
             {[
               { val: student.pts, label: 'Points', col: 'var(--primary)' },

@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get("/", ctrl.getMyNotifications);
 router.post("/test", ctrl.sendTestNotification);
+router.post("/announce", ctrl.sendAnnouncement);
 router.patch("/:id/read", ctrl.markRead);
 router.post("/read-all", ctrl.markAllRead);
 router.delete("/clear-read", ctrl.clearAllRead);

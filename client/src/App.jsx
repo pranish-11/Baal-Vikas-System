@@ -30,6 +30,7 @@ import TeacherSummaryModal from './components/Modals/TeacherSummaryModal';
 import LinkParentModal from './components/Modals/LinkParentModal';
 import AssignClassModal from './components/Modals/AssignClassModal';
 import ManageClassesModal from './components/Modals/ManageClassesModal';
+import NoticeDetailModal from './components/Modals/NoticeDetailModal';
 import AddBehaviourModal from './components/Modals/AddBehaviourModal';
 import UserManagementModal from './components/Modals/UserManagementModal';
 import GlobalSearch from './components/GlobalSearch';
@@ -54,6 +55,7 @@ const MODAL_MAP = {
   manageClasses: ManageClassesModal,
   addBehaviour: AddBehaviourModal,
   manageUsers: UserManagementModal,
+  noticeDetail: NoticeDetailModal,
 };
 
 function Toast({ message }) {
