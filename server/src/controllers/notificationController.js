@@ -94,4 +94,52 @@ async function sendTestNotification(req, res, next) {
   }
 }
 
-module.exports = { getMyNotifications, markRead, markAllRead, clearAllRead, deleteOne, sendTestNotification };
+async function sendAnnouncement(req, res, next) {
+  try {
+    const { title, body, targetRole } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+    const type = "notice";
+    const link = "/notifications";
+    const t = (targetRole || "all").toLowerCase();
+
+    if (t === "all" || t === "admin") {
+      await notificationService.notifyAdmins(title, body || "", type, link);
+    }
+    if (t === "all" || t === "teacher") {
+      await notificationService.notifyTeachers(title, body || "", type, link);
+    }
+    if (t === "all" || t === "parent") {
+      await notificationService.notifyAllParents(title, body || "", type, link);
+    }
+
+    // Deduplicate: notifyAdmins creates 2 for sender (real ID + demo fallback)
+    try {
+      const senderIds = [req.user.userId];
+      if (req.user.email) {
+        const emailId = req.user.email.replace(/[^a-z0-9]/gi, '_');
+        if (emailId && !senderIds.includes(emailId)) senderIds.push(emailId);
+        const demoId = DEMO_IDS[req.user.email];
+        if (demoId && !senderIds.includes(demoId)) senderIds.push(demoId);
+      }
+      const notifs = await prisma.notification.findMany({
+        where: { userId: { in: senderIds }, title, body: body || "", type: "notice" },
+        orderBy: { createdAt: "desc" },
+      });
+      if (notifs.length > 1) {
+        await prisma.notification.deleteMany({
+          where: { id: { in: notifs.slice(1).map(n => n.id) } },
+        });
+      }
+    } catch (e) {
+      console.error("[sendAnnouncement] dedup error:", e.message);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getMyNotifications, markRead, markAllRead, clearAllRead, deleteOne, sendTestNotification, sendAnnouncement };

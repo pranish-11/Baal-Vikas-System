@@ -16,7 +16,7 @@ const TYPE_ICONS = {
 };
 
 export default function NotificationPanel({ open, onClose, onNavigate }) {
-  const { user, refreshNotifCount } = useApp();
+  const { user, refreshNotifCount, openModal } = useApp();
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread] = useState(0);
   const socketRef = useRef(null);
@@ -63,7 +63,11 @@ export default function NotificationPanel({ open, onClose, onNavigate }) {
 
   const handleClick = (n) => {
     if (!n.read) markOneRead(n.id);
-    if (n.link && onNavigate) onNavigate(n.link.replace('/', ''));
+    if (n.type === 'notice') {
+      if (openModal) openModal('noticeDetail', { title: n.title, body: n.body });
+    } else if (n.link && onNavigate) {
+      onNavigate(n.link.replace('/', ''));
+    }
     if (onClose) onClose();
   };
 

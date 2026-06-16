@@ -57,7 +57,7 @@ export default function StudentsPage() {
   const chips = [
     { key: 'all', label: 'All Students' },
     { key: 'excellent', label: 'Excellent' },
-    { key: 'good', label: 'Good' },
+    { key: 'good', label: 'Fair' },
     { key: 'attention', label: 'Needs Attention' },
     { key: 'absent', label: 'Absent Today' },
   ];
@@ -133,7 +133,7 @@ export default function StudentsPage() {
                 ) : (
                   <div className="student-grid">
                     {classFiltered.map(s => (
-                      <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer' }}>
+                      <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer', height: '100%' }}>
                         <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
                       </div>
                     ))}
@@ -146,7 +146,7 @@ export default function StudentsPage() {
       ) : (
         <div className="student-grid">
           {filtered.map(s => (
-            <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer' }}>
+            <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer', height: '100%' }}>
               <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
             </div>
           ))}
