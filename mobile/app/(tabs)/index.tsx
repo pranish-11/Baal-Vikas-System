@@ -103,8 +103,8 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             ))}
             <View style={styles.statsRow}>
-              <StatCard label="Total Fees" value={`Rs. ${data.totalFees}`} color={Colors.sky} bg={Colors.skyPale} />
-              <StatCard label="Outstanding" value={`Rs. ${data.outstandingFees}`} color={Colors.coral} bg={Colors.coralPale} />
+              <StatCard label="Total Fees" value={`NPR ${data.totalFees}`} color={Colors.sky} bg={Colors.skyPale} />
+              <StatCard label="Outstanding" value={`NPR ${data.outstandingFees}`} color={Colors.coral} bg={Colors.coralPale} />
             </View>
           </>
         )}

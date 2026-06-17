@@ -100,6 +100,7 @@ async function getThread(req, res, next) {
         recipientId: msg.recipientId,
         content: text,
         createdAt: msg.createdAt,
+        editedAt: msg.editedAt || null,
         isRead: msg.readBy.includes(userId) || msg.senderId === userId,
         attachmentUrl: msg.attachmentUrl,
         attachmentType: msg.attachmentType,
@@ -204,14 +205,72 @@ async function markMessageRead(req, res, next) {
 
 async function deleteMessage(req, res, next) {
   try {
+    const userId = req.user.sub;
+    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
+    if (!message) return res.status(404).json({ error: "Message not found" });
+    if (message.senderId !== userId) {
+      return res.status(403).json({ error: "You can only delete your own messages" });
+    }
+
     await prisma.message.update({
       where: { id: req.params.id },
       data: { isDeleted: true },
     });
+
+    // Emit socket event for real-time sync
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${message.recipientId}`).emit("message_deleted", {
+        messageId: req.params.id,
+        deletedBy: userId,
+      });
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     return next(err);
   }
 }
 
-module.exports = { getConversations, getThread, sendMessage, markMessageRead, deleteMessage };
+async function editMessage(req, res, next) {
+  try {
+    const userId = req.user.sub;
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: "content required" });
+    }
+
+    const message = await prisma.message.findUnique({ where: { id: req.params.id } });
+    if (!message) return res.status(404).json({ error: "Message not found" });
+    if (message.senderId !== userId) {
+      return res.status(403).json({ error: "You can only edit your own messages" });
+    }
+    if (message.isDeleted) {
+      return res.status(400).json({ error: "Cannot edit a deleted message" });
+    }
+
+    // Re-encrypt the new content
+    const { content: encrypted, iv } = encrypt(content.trim());
+
+    await prisma.message.update({
+      where: { id: req.params.id },
+      data: { content: encrypted, iv, editedAt: new Date() },
+    });
+
+    // Emit socket event for real-time sync
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`user:${message.recipientId}`).emit("message_edited", {
+        messageId: req.params.id,
+        content: content.trim(),
+        editedAt: new Date().toISOString(),
+      });
+    }
+
+    return res.json({ ok: true, editedAt: new Date().toISOString() });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+module.exports = { getConversations, getThread, sendMessage, markMessageRead, deleteMessage, editMessage };

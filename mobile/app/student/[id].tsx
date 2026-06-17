@@ -177,7 +177,7 @@ export default function StudentDetailScreen() {
                   <Text style={styles.feeDue}>Due: {new Date(f.dueDate).toLocaleDateString()}</Text>
                 </View>
                 <View>
-                  <Text style={styles.feeAmount}>Rs. {f.amount.toLocaleString()}</Text>
+                  <Text style={styles.feeAmount}>NPR {f.amount.toLocaleString()}</Text>
                   <View style={[styles.feeBadge, { backgroundColor: f.status === "PAID" ? "#E8F5E9" : "#FDE8E4" }]}>
                     <Text style={[styles.feeStatus, { color: f.status === "PAID" ? "#4CAF50" : Colors.coral }]}>{f.status}</Text>
                   </View>

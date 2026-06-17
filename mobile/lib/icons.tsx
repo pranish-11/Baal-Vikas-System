@@ -13,13 +13,13 @@ type IconName =
   | 'trophy' | 'search' | 'message' | 'complaint' | 'classroom'
   | 'teacher' | 'ai' | 'people' | 'add' | 'star' | 'back'
   | 'points' | 'calendar' | 'bell' | 'check' | 'close' | 'absent'
-  | 'late' | 'leave' | 'send' | 'observe' | 'reassign';
+  | 'late' | 'leave' | 'send' | 'observe' | 'reassign' | 'cctv';
 
 const ICON_MAP: Record<IconName, { symbol: string; color: string; bg: string }> = {
   home:       { symbol: '⌂', color: Colors.primary, bg: Colors.primaryPale },
-  students:   { symbol: '❖', color: '#5B6ABF',       bg: '#EEEDF9' },
+  students:   { symbol: '👥', color: '#5B6ABF',       bg: '#EEEDF9' },
   attendance: { symbol: '✓', color: '#2E8B6B',       bg: '#E4F5EF' },
-  fees:       { symbol: 'Rs.', color: '#C67B2A',      bg: '#FEF3E2' },
+  fees:       { symbol: 'NPR', color: '#C67B2A',      bg: '#FEF3E2' },
   settings:   { symbol: '⟐', color: '#6B6B7B',       bg: '#F0F0F3' },
   trophy:     { symbol: '★', color: '#D4A017',       bg: '#FEF6E4' },
   search:     { symbol: '⊙', color: Colors.text2,    bg: Colors.border },
@@ -43,6 +43,7 @@ const ICON_MAP: Record<IconName, { symbol: string; color: string; bg: string }> 
   send:       { symbol: '➤', color: '#fff',           bg: Colors.primary },
   observe:    { symbol: '✎', color: Colors.primary,  bg: Colors.primaryPale },
   reassign:   { symbol: '⇄', color: Colors.sky,      bg: Colors.skyPale },
+  cctv:       { symbol: '◉', color: '#7C5CBF',       bg: '#F1EEF9' },
 };
 
 interface IconProps {
@@ -60,7 +61,7 @@ export function Icon({ name, size = 36, color, bg, bare }: IconProps) {
   const iconColor = color || config.color;
   const iconBg = bg || config.bg;
 
-  if (name === 'people') {
+  if (name === 'people' || name === 'students') {
     const iconSize = size * 0.52;
     if (bare) {
       return <Ionicons name="people" size={iconSize} color={iconColor} />;
@@ -72,8 +73,19 @@ export function Icon({ name, size = 36, color, bg, bare }: IconProps) {
     );
   }
 
-  // Adjust font size for longer symbols like 'Rs.'
-  const fontSize = name === 'fees' ? size * 0.36 : size * 0.48;
+  if (name === 'fees') {
+    const iconSize = size * 0.52;
+    if (bare) {
+      return <Ionicons name="cash" size={iconSize} color={iconColor} />;
+    }
+    return (
+      <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: iconBg }]}>
+        <Ionicons name="cash" size={iconSize} color={iconColor} style={{ marginTop: -1 }} />
+      </View>
+    );
+  }
+
+  const fontSize = size * 0.48;
 
   if (bare) {
     return <Text style={{ fontSize, color: iconColor, fontWeight: '700' }}>{config.symbol}</Text>;
@@ -81,7 +93,7 @@ export function Icon({ name, size = 36, color, bg, bare }: IconProps) {
 
   return (
     <View style={[styles.circle, { width: size, height: size, borderRadius: size / 2, backgroundColor: iconBg }]}>
-      <Text style={[styles.symbol, { fontSize, color: iconColor, marginTop: name === 'fees' ? 1 : 0 }]}>{config.symbol}</Text>
+      <Text style={[styles.symbol, { fontSize, color: iconColor, marginTop: 0 }]}>{config.symbol}</Text>
     </View>
   );
 }
@@ -95,9 +107,15 @@ export function TabIcon({ name, focused, label }: { name: IconName; focused: boo
         styles.tabCircle,
         focused && { backgroundColor: Colors.primaryPale }
       ]}>
-        {name === 'people' ? (
+        {(name === 'people' || name === 'students') ? (
           <Ionicons 
             name={focused ? "people" : "people-outline"} 
+            size={18} 
+            color={focused ? Colors.primary : Colors.text3} 
+          />
+        ) : name === 'fees' ? (
+          <Ionicons 
+            name={focused ? "cash" : "cash-outline"} 
             size={18} 
             color={focused ? Colors.primary : Colors.text3} 
           />

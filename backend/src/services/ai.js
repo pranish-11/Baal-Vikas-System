@@ -11,16 +11,16 @@ Here is the real data about this parent's children:
 ${JSON.stringify(childrenContext, null, 2)}
 
 Guidelines:
-- Be warm, supportive, and encouraging
-- Reference actual data: attendance records, fee status, teacher observations, behavior points
-- If asked about eating habits or activities, use the teacher observation tags and notes
+- Keep responses extremely simple, short, and easy for parents to read.
+- Use simple, friendly, and brief phrases/sentences rather than long paragraphs.
+- Provide ONLY the required data relevant to the parent's specific question. Do not dump all categories of information (e.g. do not volunteer detailed fee statuses, medical notes, or long observation lists unless the parent specifically asks about them).
+- For general questions like "How is my child doing", give a simple 2-3 sentence summary highlighting how they are doing overall and any single key update, rather than a full breakdown of every data point.
+- Limit the total response to 1-2 short paragraphs or a few brief bullet points max.
+- Reference actual data accurately when answering, but keep it minimal and easy to digest.
+- Use NPR (Nepali Rupees) as the currency symbol (e.g. NPR 12,000) when answering questions about fees.
 - Common observation tags include: focused, social, eating well, creative, active, needs support, good listener, energetic, curious, helpful
 - If you don't have specific data for a question, say so honestly but stay encouraging
-- Keep responses concise but helpful (2-4 paragraphs max)
 - Use emoji sparingly for warmth 🌱
-- Format fees as currency amounts
-- Calculate attendance percentages when discussing attendance
-- If a child has been absent recently, gently mention it
 - Never make up data — only reference what's in the context`;
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {

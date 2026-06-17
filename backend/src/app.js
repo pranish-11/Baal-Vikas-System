@@ -27,6 +27,7 @@ const messageRoutes = require("./routes/messages");
 const chatRoutes = require("./routes/chat");
 const complaintRoutes = require("./routes/complaints");
 const extraRoutes = require("./routes/extra");
+const cctvRoutes = require("./routes/cctv");
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "axion-montessori-api" });
@@ -44,6 +45,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api", extraRoutes);
+app.use("/api/cctv", cctvRoutes);
 
 // Single error handler
 app.use((err, _req, res, _next) => {

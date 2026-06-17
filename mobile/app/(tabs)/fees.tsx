@@ -30,15 +30,15 @@ export default function FeesScreen() {
       {/* Summary bar */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryCard, { backgroundColor: Colors.skyPale }]}>
-          <Text style={[styles.summaryValue, { color: Colors.sky }]}>Rs. {total.toLocaleString()}</Text>
+          <Text style={[styles.summaryValue, { color: Colors.sky }]}>NPR {total.toLocaleString()}</Text>
           <Text style={[styles.summaryLabel, { color: Colors.sky }]}>Total</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: "#E8F5E9" }]}>
-          <Text style={[styles.summaryValue, { color: "#4CAF50" }]}>Rs. {paid.toLocaleString()}</Text>
+          <Text style={[styles.summaryValue, { color: "#4CAF50" }]}>NPR {paid.toLocaleString()}</Text>
           <Text style={[styles.summaryLabel, { color: "#4CAF50" }]}>Paid</Text>
         </View>
         <View style={[styles.summaryCard, { backgroundColor: Colors.coralPale }]}>
-          <Text style={[styles.summaryValue, { color: Colors.coral }]}>Rs. {outstanding.toLocaleString()}</Text>
+          <Text style={[styles.summaryValue, { color: Colors.coral }]}>NPR {outstanding.toLocaleString()}</Text>
           <Text style={[styles.summaryLabel, { color: Colors.coral }]}>Due</Text>
         </View>
       </View>
@@ -62,7 +62,7 @@ export default function FeesScreen() {
               </View>
             </View>
             <View style={styles.cardBottom}>
-              <Text style={styles.feeAmount}>Rs. {item.amount.toLocaleString()}</Text>
+              <Text style={styles.feeAmount}>NPR {item.amount.toLocaleString()}</Text>
               <Text style={styles.feeDue}>Due: {new Date(item.dueDate).toLocaleDateString()}</Text>
             </View>
             {item.amountPaid > 0 && item.amountPaid < item.amount && (

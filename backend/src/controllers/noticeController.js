@@ -2,9 +2,18 @@ const prisma = require("../lib/prisma");
 
 async function list(req, res, next) {
   try {
-    const { role } = req.user;
+    const { role, sub: userId } = req.user;
+    let where = {};
+    if (role !== "ADMIN") {
+      where = {
+        OR: [
+          { targetRoles: { hasSome: [role] } },
+          { senderId: userId }
+        ]
+      };
+    }
     const notices = await prisma.notice.findMany({
-      where: { targetRoles: { hasSome: [role] } },
+      where,
       orderBy: { createdAt: "desc" },
       take: 30,
     });

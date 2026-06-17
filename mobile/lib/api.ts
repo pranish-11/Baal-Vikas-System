@@ -203,3 +203,16 @@ export const assignClassroom = (studentId: string, classroomId: string) =>
 
 // --- Contacts ---
 export const getContacts = () => api.get("/api/contacts").then((r) => r.data);
+
+// --- Message Edit & Delete ---
+export const editMessage = (id: string, content: string) =>
+  api.patch(`/api/messages/${id}/edit`, { content }).then((r) => r.data);
+export const deleteMessage = (id: string) =>
+  api.delete(`/api/messages/${id}`).then((r) => r.data);
+
+// --- CCTV ---
+export const getCCTVClassrooms = () => api.get("/api/cctv/classrooms").then((r) => r.data);
+export const getCCTVAnalysis = (classroomId: string) =>
+  api.get(`/api/cctv/analysis/${classroomId}`).then((r) => r.data);
+export const triggerCCTVAnalysis = (classroomId: string) =>
+  api.post(`/api/cctv/analyze/${classroomId}`).then((r) => r.data);

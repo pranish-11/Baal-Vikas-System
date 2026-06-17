@@ -1,10 +1,11 @@
 const express = require("express");
-const { getConversations, getThread, sendMessage, markMessageRead, deleteMessage } = require("../controllers/messageController");
+const { getConversations, getThread, sendMessage, markMessageRead, deleteMessage, editMessage } = require("../controllers/messageController");
 const { requireAuth } = require("../middleware/authMiddleware");
 const router = express.Router();
 router.get("/conversations", requireAuth, getConversations);
 router.get("/thread/:recipientId", requireAuth, getThread);
 router.post("/send", requireAuth, sendMessage);
 router.patch("/:id/read", requireAuth, markMessageRead);
+router.patch("/:id/edit", requireAuth, editMessage);
 router.delete("/:id", requireAuth, deleteMessage);
 module.exports = router;
