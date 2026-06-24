@@ -2,27 +2,76 @@ const prisma = require("../lib/prisma");
 
 async function getAttendance(req, res, next) {
   try {
+    const { sub: userId, role } = req.user;
     const { studentId, date, classroomId } = req.query;
     const where = {};
 
-    if (studentId) where.studentId = studentId;
+    if (role === "PARENT") {
+      const children = await prisma.student.findMany({
+        where: { parentId: userId },
+        select: { id: true },
+      });
+      const childrenIds = children.map((c) => c.id);
+      if (studentId) {
+        if (childrenIds.includes(studentId)) {
+          where.studentId = studentId;
+        } else {
+          return res.status(403).json({ error: "Access denied to this student's attendance" });
+        }
+      } else {
+        where.studentId = { in: childrenIds };
+      }
+    } else if (role === "TEACHER") {
+      const classroom = await prisma.classroom.findFirst({
+        where: { teacherId: userId },
+        select: { id: true },
+      });
+      if (!classroom) {
+        where.studentId = { in: [] };
+      } else {
+        const students = await prisma.student.findMany({
+          where: { classroomId: classroom.id },
+          select: { id: true },
+        });
+        const classStudentIds = students.map((s) => s.id);
+        if (studentId) {
+          if (classStudentIds.includes(studentId)) {
+            where.studentId = studentId;
+          } else {
+            return res.status(403).json({ error: "Access denied to this student's attendance" });
+          }
+        } else if (classroomId) {
+          if (classroomId === classroom.id) {
+            where.studentId = { in: classStudentIds };
+          } else {
+            return res.status(403).json({ error: "Access denied to this classroom's attendance" });
+          }
+        } else {
+          where.studentId = { in: classStudentIds };
+        }
+      }
+    } else {
+      // ADMIN: full access
+      if (studentId) where.studentId = studentId;
+      if (classroomId) {
+        const students = await prisma.student.findMany({
+          where: { classroomId },
+          select: { id: true },
+        });
+        where.studentId = { in: students.map((s) => s.id) };
+      }
+    }
+
     if (date) {
       const d = new Date(date);
       where.date = { gte: d, lt: new Date(d.getTime() + 86400000) };
-    }
-    if (classroomId) {
-      const students = await prisma.student.findMany({
-        where: { classroomId },
-        select: { id: true },
-      });
-      where.studentId = { in: students.map((s) => s.id) };
     }
 
     const records = await prisma.attendance.findMany({
       where,
       include: { student: { select: { firstName: true, lastName: true } } },
       orderBy: { date: "desc" },
-      take: 100,
+      take: 1000,
     });
 
     return res.json(records);
