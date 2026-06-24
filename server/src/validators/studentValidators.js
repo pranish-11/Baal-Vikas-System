@@ -17,7 +17,7 @@ const createStudentSchema = z.object({
 });
 
 const awardPointsSchema = z.object({
-  points: z.number().int().min(1),
+  points: z.number().int(),
   source: z.string().optional(),
   description: z.string().optional(),
   notifyParent: z.boolean().optional()

@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Calendar } from 'lucide-react';
 
 export default function ActivityFeed({ onNavigate }) {
   const { currentRole, students, attendanceData, user, getTeacherClassrooms } = useApp();
+  const [selectedChildIdx, setSelectedChildIdx] = useState(0);
 
   // Filter students by teacher's assigned classrooms
   let visibleStudents = students;
@@ -29,14 +31,43 @@ export default function ActivityFeed({ onNavigate }) {
   });
 
   if (currentRole === 'parent') {
-    const child = visibleStudents[0] || students[0];
-    if (!child) return null;
+    const email = user?.email || '';
+    const myChildren = students.filter(s => s.parentEmail && s.parentEmail.toLowerCase() === email.toLowerCase());
+
+    if (myChildren.length === 0) {
+      return (
+        <div className="card mb-20">
+          <div className="card-header">
+            <div className="card-title">Today's Summary</div>
+          </div>
+          <div className="card-body" style={{ padding: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text3)' }}>No child linked to this account.</div>
+          </div>
+        </div>
+      );
+    }
+
+    const safeIdx = Math.min(selectedChildIdx, myChildren.length - 1);
+    const child = myChildren[safeIdx];
     const todayRec = rec[child.id];
+    const childRank = students.filter(s => (s.pts || 0) > (child.pts || 0)).length + 1;
+
     return (
       <div className="card mb-20">
         <div className="card-header">
           <div className="card-title">Today's Summary</div>
         </div>
+        {myChildren.length > 1 && (
+          <div style={{ display: 'flex', gap: 4, padding: '0 20px', marginBottom: 8 }}>
+            {myChildren.map((c, i) => (
+              <div key={c.id} onClick={() => setSelectedChildIdx(i)} style={{
+                padding: '4px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                background: i === safeIdx ? 'var(--primary)' : 'var(--surface2)',
+                color: i === safeIdx ? '#fff' : 'var(--text2)',
+              }}>{c.name}</div>
+            ))}
+          </div>
+        )}
         <div className="card-body" style={{ padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: child.bg || 'var(--primary-pale)', color: child.col || 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800 }}>{child.init}</div>
@@ -60,7 +91,7 @@ export default function ActivityFeed({ onNavigate }) {
             </div>
             <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--coral-pale)' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>Class Rank</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--coral)' }}>#{child.rank || '—'}</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--coral)' }}>#{childRank}</div>
             </div>
           </div>
         </div>

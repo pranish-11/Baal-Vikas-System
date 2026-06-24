@@ -165,66 +165,50 @@ router.post("/", async (req, res, next) => {
 
     const lines = [];
 
-    // ── GENERAL: show everything ──
+    // ── GENERAL: concise natural summary ──
     if (isGeneral) {
-      lines.push(`Here's a full update on **${studentName}**:`);
+      const summaryParts = [];
 
       // Attendance
-      if (statuses.some(s => s)) {
-        lines.push("");
-        lines.push("**📅 Attendance This Week**");
-        weekDates.forEach((d, i) => {
-          const s = statuses[i];
-          if (s) {
-            const icon = s === "present" ? "✅" : s === "late" ? "⏰" : s === "absent" ? "❌" : "📅";
-            lines.push(`- ${icon} ${weekDaysList[i]} (${formatDate(d)}): **${s.charAt(0).toUpperCase() + s.slice(1)}**`);
-          }
-        });
-        lines.push(`On-time: **${presentCount}**/5`);
-      }
+      const todayStatus = attMap[today];
+      if (todayStatus === "present") summaryParts.push("was present today");
+      else if (todayStatus === "absent") summaryParts.push("was absent today");
+      else if (todayStatus === "late") summaryParts.push("was late today");
+      else if (presentCount > 0) summaryParts.push(`attended ${presentCount} day(s) this week`);
 
-      // Today's activities
+      // Activities & mood
       if (todayLog) {
-        const acts = buildActivityLines(todayLog);
-        if (acts.length > 0) {
-          lines.push("");
-          lines.push("**📋 Today's Activities**");
-          lines.push(...acts);
-        }
-        addMoodRatingNotes(todayLog, lines);
+        const acts = [];
+        if (todayLog.ate) acts.push("ate");
+        if (todayLog.snack) acts.push("had snack");
+        if (todayLog.play) acts.push("played");
+        if (todayLog.nap) acts.push("napped");
+        if (todayLog.outdoor) acts.push("went outside");
+        if (acts.length > 0) summaryParts.push(acts.join(", "));
+        if (todayLog.mood === "happy") summaryParts.push("seemed happy");
+        else if (todayLog.mood === "okay") summaryParts.push("seemed okay");
       }
 
-      // Behavior
-      lines.push("");
-      lines.push("**⭐ Behavior**");
-      lines.push(`- Points: **${student.behaviorScore || 0}**`);
-      addPosNegSummary(activities, lines);
+      // Behavior (conversational, no exact numbers)
+      const { pos, neg } = countPosNeg(activities);
+      if (pos > 0 && neg === 0) summaryParts.push("earned some points today");
+      else if (neg > 0 && pos === 0) summaryParts.push("points were reduced today");
+      else if (pos > 0 && neg > 0) summaryParts.push("had a mixed day with points");
 
-      // Observations
+      if (summaryParts.length > 0) {
+        lines.push(`${studentName} ${summaryParts.join(" and ")}.`);
+      } else {
+        lines.push(`${studentName} seems to be doing well — no recent updates to report.`);
+      }
+
       if (tags.length > 0) {
-        lines.push("");
-        lines.push("**👀 Teacher Observations**");
-        tags.forEach(t => lines.push(`- 🏷️ ${t}`));
+        const tag = tags[0].length > 60 ? tags[0].slice(0, 60) + "..." : tags[0];
+        lines.push(`Teacher note: "${tag}"`);
       }
 
-      // Recent updates
-      if (activities.length > 0) {
-        lines.push("");
-        lines.push("**📝 Recent Updates**");
-        activities.slice(0, 4).forEach(a => {
-          const icon = a.title?.toLowerCase().includes("awarded") ? "🏆" : a.title?.toLowerCase().includes("deduct") ? "⚠️" : "📌";
-          lines.push(`- ${icon} ${a.title}${a.timeLabel ? ` (${a.timeLabel})` : ""}`);
-        });
-      }
-
-      // Complaints
-      if (complaints.length > 0) {
-        lines.push("");
-        lines.push("**📋 Complaints**");
-        complaints.slice(0, 2).forEach(c => {
-          const si = c.status === "resolved" ? "✅" : c.status === "pending" ? "⏳" : "🆕";
-          lines.push(`- ${si} ${c.title} — *${c.status}*`);
-        });
+      const pendingComplaints = complaints.filter(c => c.status !== "resolved");
+      if (pendingComplaints.length > 0) {
+        lines.push(`There ${pendingComplaints.length === 1 ? "is" : "are"} ${pendingComplaints.length} open concern(s) to check.`);
       }
     }
 
@@ -278,16 +262,27 @@ router.post("/", async (req, res, next) => {
 
     // ── BEHAVIOR-SPECIFIC ──
     if (intents.includes("behavior") && !isGeneral) {
-      lines.push(`**${studentName}**'s behavior summary:`);
-      lines.push(`- Points: **${student.behaviorScore || 0}**`);
-      addPosNegSummary(activities, lines);
+      if (isAskingForExactPoints(question)) {
+        lines.push(`${studentName} has **${student.behaviorScore || 0}** points.`);
+        addPosNegSummary(activities, lines);
+      } else {
+        const { pos, neg } = countPosNeg(activities);
+        if (pos > 0 && neg === 0) {
+          lines.push(`${studentName} earned some points today. 🙂`);
+        } else if (neg > 0 && pos === 0) {
+          lines.push(`Points were reduced today.`);
+        } else if (pos > 0 && neg > 0) {
+          lines.push(`${studentName} had a mixed day with points.`);
+        } else {
+          lines.push(`${studentName} is doing well — no recent behavior changes.`);
+        }
+      }
       if (tags.length > 0) {
-        lines.push("");
         lines.push(`Teacher observations: ${tags.join(", ")}`);
       }
       if (todayLog?.mood) {
         const moodEmojis = { happy: "😊", okay: "😐", tired: "😴", sad: "😢", fussy: "😣" };
-        lines.push(`- Mood today: ${moodEmojis[todayLog.mood] || ""} **${todayLog.mood}**`);
+        lines.push(`Mood today: ${moodEmojis[todayLog.mood] || ""} ${todayLog.mood}`);
       }
     }
 
@@ -418,6 +413,18 @@ function addMoodRatingNotes(todayLog, lines) {
   if (todayLog.social) lines.push(`- 👥 Social: ${todayLog.social}`);
   if (todayLog.health) lines.push(`- ❤️ Health: ${todayLog.health}`);
   if (todayLog.note) lines.push(`- 💬 Note: *"${todayLog.note}"*`);
+}
+
+function isAskingForExactPoints(q) {
+  const raw = q.toLowerCase().trim();
+  const patterns = ["how many points", "how many point", "what is the score", "what's the score", "what is my", "what are my", "total points", "current points", "point total", "tell me points", "tell me the points", "exact points", "exact score"];
+  return patterns.some(p => raw.includes(p));
+}
+
+function countPosNeg(activities) {
+  const pos = activities.filter(a => a.title?.toLowerCase().includes("awarded")).length;
+  const neg = activities.filter(a => a.title?.toLowerCase().includes("deduct")).length;
+  return { pos, neg };
 }
 
 function addPosNegSummary(activities, lines) {

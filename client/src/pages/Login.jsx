@@ -27,36 +27,6 @@ export default function Login() {
     try { return JSON.parse(localStorage.getItem('axion_saved_profiles')) || []; } catch { return []; }
   })();
 
-  const mockLogin = async (profileKey, customEmail) => {
-    const profiles = {
-      admin: { name: 'Admin User', email: 'admin@axion.edu' },
-      teacher: { name: 'Ms. Anika Roy', email: 'anika@axion.edu' },
-      parent: { name: 'Mrs. Lena Kim', email: 'lena@axion.edu' },
-    };
-    const p = profiles[profileKey];
-    const userEmail = (customEmail || p.email).toLowerCase();
-    const userName = customEmail
-      ? profiles[profileKey]?.name || customEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-      : p.name;
-    const u = {
-      name: userName,
-      email: userEmail,
-      role: profileKey.toUpperCase(),
-      id: userEmail.replace(/[^a-z0-9]/gi, '_')
-    };
-    const profile = { role: profileKey, user: u };
-    localStorage.setItem('axion_profile', JSON.stringify(profile));
-    localStorage.setItem('axion_token', 'demo-token-' + profileKey);
-    localStorage.setItem('axion_last_email', userEmail);
-    addSavedProfile(userEmail, profileKey, u);
-    setCurrentRole(profileKey);
-    setUser(u);
-    setCurrentMsgId(null);
-    setIsLoggedIn(true);
-    setAllEligibleUsers([]);
-    await refreshData();
-  };
-
   const handleLogin = async () => {
     setError('');
     if (!email || !password) { setError('Email and password required'); return; }
@@ -64,7 +34,6 @@ export default function Login() {
     try {
       await doLogin(email, password);
     } catch (e) {
-      if (e.message === 'Failed to fetch') { mockLogin(role, email); return; }
       setError(e.message);
       setBusy(false);
     }
@@ -76,8 +45,9 @@ export default function Login() {
     setBusy(true);
     try {
       await doLogin(p.email, savedPass);
-    } catch {
-      mockLogin(p.role, p.email);
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
     }
   };
 
