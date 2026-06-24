@@ -56,6 +56,11 @@ export function AppProvider({ children }) {
   const [toastMessage, setToastMessage] = useState('');
   const [selectedChildId, setSelectedChildId] = useState(null);
 
+  // Camera state (persistent across navigation)
+  const [cameraOnline, setCameraOnline] = useState(() => !!localStorage.getItem('axion_connected_url'));
+  const [connectedUrl, setConnectedUrl] = useState(() => localStorage.getItem('axion_connected_url') || '');
+  const [networkUrl, setNetworkUrl] = useState(() => localStorage.getItem('axion_network_url') || '');
+
   // Attendance
   const [attendanceData, setAttendanceData] = useState({});
   const [attendanceDraft, setAttendanceDraft] = useState({});
@@ -364,21 +369,27 @@ export function AppProvider({ children }) {
   }, [showToast, closeModal, refreshData]);
 
   const submitAward = useCallback(async (payload) => {
-    const selected = students.find(s => s.name === payload.studentId) || students[0];
+    const selected = students.find(s => s.id === payload.studentId) || students[0];
+    const pts = payload.points || 0;
     closeModal();
     try {
-      await requestJSON(`${API_BASE}/students/${selected?.id}/award`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      await refreshData();
-      showToast('Points awarded successfully!');
+      const result = await requestJSON(`${API_BASE}/students/${selected?.id}/award`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (result?.item && selected) {
+        selected.pts = result.item.pts;
+        setStudents([...students]);
+      } else {
+        await refreshData();
+      }
+      showToast(pts >= 0 ? `🌟 ${selected?.name || 'Child'} awarded +${pts} points.` : `⚠️ ${selected?.name || 'Child'}'s points reduced by ${pts}.`);
     } catch (e) {
       if (selected) {
-        const pts = payload.points || 5;
         selected.pts = Math.max(0, (selected.pts || 0) + pts);
         setStudents([...students]);
-        const activity = { id: 'act-' + Date.now(), title: `Awarded ${pts} points to ${selected.name}`, desc: payload.source || 'Teacher Award', time: 'Just now', timeLabel: 'Just now' };
+        const title = pts >= 0 ? `Awarded ${pts} points to ${selected.name}` : `Deducted ${Math.abs(pts)} points from ${selected.name}`;
+        const activity = { id: 'act-' + Date.now(), title, desc: payload.source || 'Teacher Award', time: 'Just now', timeLabel: 'Just now' };
         setActivities([activity, ...activities]);
       }
-      showToast('Points awarded (offline)');
+      showToast(pts >= 0 ? `🌟 ${selected?.name || 'Child'} awarded +${pts} points.` : `⚠️ ${selected?.name || 'Child'}'s points reduced by ${pts}.`);
     }
   }, [students, activities, showToast, closeModal, refreshData]);
 
@@ -937,6 +948,7 @@ export function AppProvider({ children }) {
     activeModal, modalData, openModal, closeModal,
     toastMessage, showToast,
     attendanceData, setAttendanceData, attendanceDraft, setAttendanceDraft, selectedAttendanceDate, setSelectedAttendanceDate, dailyLogs, setDailyLogs,
+    cameraOnline, setCameraOnline, connectedUrl, setConnectedUrl, networkUrl, setNetworkUrl,
     
     // Functions
     refreshData, doLogin, doRegister, logout: doLogout, navTo, buildNotifications,

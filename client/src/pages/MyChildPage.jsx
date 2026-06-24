@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../contexts/AppContext';
-import { Tag, Plus, Check, Clock, X, Calendar, Edit3, Sparkles, UtensilsCrossed, Bed, Smile, Frown, Meh, Brain, Users, TreePine, Heart, Star, ThumbsDown, Zap } from 'lucide-react';
+import { Tag, Plus, Check, Clock, X, Calendar, Edit3, Sparkles, UtensilsCrossed, Bed, Smile, Frown, Meh, Brain, Users, TreePine, Heart, Star, ThumbsDown, Zap, CheckCircle2, XCircle, CalendarOff, CalendarDays } from 'lucide-react';
 import LegoBrickIcon from '../components/LegoBrickIcon';
 import { requestJSON } from '../api';
 import { API_BASE } from '../config';
@@ -127,10 +127,23 @@ export default function MyChildPage() {
     const present = dates.filter(d => (attendanceData[d] || {})[myChild.id] === 'present').length;
     const late = dates.filter(d => (attendanceData[d] || {})[myChild.id] === 'late').length;
     const absent = dates.filter(d => (attendanceData[d] || {})[myChild.id] === 'absent').length;
+    const leave = dates.filter(d => (attendanceData[d] || {})[myChild.id] === 'leave').length;
     const marked = dates.filter(d => (attendanceData[d] || {})[myChild.id] !== null).length;
     const rate = marked > 0 ? Math.round(present / marked * 100) : 0;
     const statuses = dates.map(d => (attendanceData[d] || {})[myChild.id] || null);
-    return { dates, present, late, absent, rate, statuses, dayLabels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
+    return { dates, present, late, absent, leave, rate, statuses, dayLabels: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] };
+  }, [myChild.id, attendanceData]);
+
+  const childAttendanceSummary = useMemo(() => {
+    let present = 0, late = 0, absent = 0, leave = 0;
+    Object.keys(attendanceData).forEach(ds => {
+      const st = (attendanceData[ds] || {})[myChild.id];
+      if (st === 'present') present++;
+      else if (st === 'late') late++;
+      else if (st === 'absent') absent++;
+      else if (st === 'leave') leave++;
+    });
+    return { present, late, absent, leave, total: present + late + absent + leave };
   }, [myChild.id, attendanceData]);
 
   const tags = teacherTags[myChild.id] || [];
@@ -396,14 +409,19 @@ export default function MyChildPage() {
                 {weekData.dayLabels.map((label, i) => {
                   const st = weekData.statuses[i];
                   const dotColor = st === 'present' ? '#22c55e' : st === 'late' ? '#f97316' : st === 'absent' ? '#ef4444' : '#e0e0e0';
+                  const isTodayCircle = i === new Date().getDay();
                   return (
                     <div key={label} style={{ textAlign: 'center' }}>
-                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: dotColor, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
+                      <div style={{
+                        width: 28, height: 28, borderRadius: '50%', background: dotColor,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 2,
+                        ...(isTodayCircle ? { border: '2.5px solid var(--primary)', boxShadow: '0 0 0 3px rgba(46,125,107,0.2)' } : {}),
+                      }}>
                         <div style={{ fontSize: 9, fontWeight: 800, color: st ? '#fff' : '#999' }}>
                           {st === 'present' ? '✓' : st === 'late' ? '~' : st === 'absent' ? '✗' : '-'}
                         </div>
                       </div>
-                      <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)' }}>{label}</div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: isTodayCircle ? 'var(--primary)' : 'var(--text3)' }}>{label}</div>
                     </div>
                   );
                 })}
@@ -760,17 +778,22 @@ export default function MyChildPage() {
               const st = weekStatuses[i];
               const isPresent = st === 'present';
               const barWidth = isPresent ? 100 : st === 'late' ? 50 : st === 'absent' ? 0 : st === 'leave' ? 50 : 0;
+              const isTodayRow = i === new Date().getDay();
               return (
-                <div key={d} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 32, fontSize: 12, fontWeight: 700, color: 'var(--text3)' }}>{d}</div>
+                <div key={d} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10,
+                  ...(isTodayRow ? { background: 'var(--primary-pale)', borderRadius: 8, padding: '4px 8px', margin: '0 -8px 10px' } : {}),
+                }}>
+                  <div style={{ width: 32, fontSize: 12, fontWeight: 700, color: isTodayRow ? 'var(--primary)' : 'var(--text3)' }}>{d} {weekDates[i].slice(8)}{isTodayRow ? ' ★' : ''}</div>
                   <div className="stu-bar-wrap" style={{ flex: 1, height: 8 }}>
                     {st ? (
                       <div className="stu-bar" style={{
                         width: `${barWidth}%`,
-                        background: isPresent ? '#22c55e' : st === 'late' ? '#f97316' : st === 'absent' ? '#ef4444' : '#a855f7'
+                        background: isPresent ? '#22c55e' : st === 'late' ? '#f97316' : st === 'absent' ? '#ef4444' : '#3b82f6',
+                        ...(isTodayRow ? { boxShadow: '0 0 0 2px var(--primary), 0 0 6px rgba(46,125,107,0.3)' } : {}),
                       }} />
                     ) : (
-                      <div style={{ height: 8, borderRadius: 4, background: 'var(--border)' }} />
+                      <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', ...(isTodayRow ? { boxShadow: '0 0 0 2px var(--primary)' } : {}) }} />
                     )}
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 800, minWidth: 60, textAlign: 'right', color: st ? 'var(--text)' : 'var(--text3)' }}>
@@ -789,6 +812,51 @@ export default function MyChildPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-header">
+          <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CalendarDays size={16} style={{ color: 'var(--primary)' }} />
+            Attendance Summary — All Records
+          </div>
+        </div>
+        <div className="card-body">
+          {childAttendanceSummary.total === 0 ? (
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', textAlign: 'center', padding: '12px 0' }}>
+              No attendance records yet.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
+                <div style={{ padding: '12px 8px', borderRadius: 10, background: '#f0fdf4', textAlign: 'center' }}>
+                  <CheckCircle2 size={18} style={{ color: '#22c55e', margin: '0 auto 4px', display: 'block' }} />
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#22c55e' }}>{childAttendanceSummary.present}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>Present</div>
+                </div>
+                <div style={{ padding: '12px 8px', borderRadius: 10, background: '#fff7ed', textAlign: 'center' }}>
+                  <Clock size={18} style={{ color: '#f97316', margin: '0 auto 4px', display: 'block' }} />
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#f97316' }}>{childAttendanceSummary.late}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>Late</div>
+                </div>
+                <div style={{ padding: '12px 8px', borderRadius: 10, background: '#fef2f2', textAlign: 'center' }}>
+                  <XCircle size={18} style={{ color: '#ef4444', margin: '0 auto 4px', display: 'block' }} />
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#ef4444' }}>{childAttendanceSummary.absent}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>Absent</div>
+                </div>
+                <div style={{ padding: '12px 8px', borderRadius: 10, background: '#eff6ff', textAlign: 'center' }}>
+                  <CalendarOff size={18} style={{ color: '#3b82f6', margin: '0 auto 4px', display: 'block' }} />
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#3b82f6' }}>{childAttendanceSummary.leave}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)', marginTop: 2 }}>On Leave</div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 8, background: 'var(--primary-pale)', fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
+                <span>Total days recorded</span>
+                <span>{childAttendanceSummary.total}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 

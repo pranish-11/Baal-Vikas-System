@@ -28,9 +28,13 @@ export default function StatsGrid() {
   const openComplaints = complaints.filter(c => c.status === 'open' || c.status === 'in-progress' || c.status === 'escalated').length;
   const unreadMessages = messages.filter(m => m.unread).length;
 
-  const childId = currentRole === 'parent' ? students.find(s => s.parentEmail === user?.email || s.parentName === user?.name)?.id : null;
-  const todayStatus = childId ? (rec[childId] || null) : null;
-  const attLabel = todayStatus === 'present' ? 'Present' : todayStatus === 'late' ? 'Late' : todayStatus === 'absent' ? 'Absent' : todayStatus === 'leave' ? 'Leave' : '—';
+  const parentChild = currentRole === 'parent' ? (
+    (() => {
+      const email = user?.email || '';
+      const match = students.find(s => s.parentEmail && s.parentEmail.toLowerCase() === email.toLowerCase());
+      return match || null;
+    })()
+  ) : null;
 
   const NAV_MAP = { 'Present Today': 'students', 'Total Students': 'students', 'Unread Messages': 'messages', 'Total Points': 'leaderboard', 'Open Complaints': 'complaints', 'Behavior Score': 'myChild', 'Today\'s Attendance': 'myChild' };
 
@@ -48,8 +52,8 @@ export default function StatsGrid() {
       { icon: 'clip', bg: 'var(--coral-pale)', val: openComplaints, label: 'Open Complaints', tag: openComplaints > 0 ? 'Needs response' : 'All handled', tagClass: 'tag-orange' },
     ],
     parent: [
-      { icon: 'star', bg: 'var(--primary-pale)', val: students[0]?.pct || 0, label: 'Behavior Score', tag: `${students[0]?.pts || 0} pts total`, tagClass: 'tag-green' },
-      { icon: 'calendar', bg: 'var(--gold-pale)', val: attLabel, label: "Today's Attendance", tag: childId ? `${students[0]?.class || ''}` : 'Not assigned', tagClass: 'tag-gold' },
+      { icon: 'star', bg: 'var(--primary-pale)', val: parentChild?.pct || 0, label: 'Behavior Score', tag: parentChild ? `${parentChild.pts || 0} pts total` : 'No data', tagClass: 'tag-green' },
+      { icon: 'calendar', bg: 'var(--gold-pale)', val: (() => { const s = parentChild ? (rec[parentChild.id] || null) : null; return s === 'present' ? 'Present' : s === 'late' ? 'Late' : s === 'absent' ? 'Absent' : s === 'leave' ? 'Leave' : '—'; })(), label: "Today's Attendance", tag: parentChild ? `${parentChild.class || ''}` : 'Not assigned', tagClass: 'tag-gold' },
       { icon: 'message', bg: 'var(--sky-pale)', val: unreadMessages, label: 'Unread Messages', tag: unreadMessages > 0 ? 'Reply today' : 'All read', tagClass: 'tag-blue' },
       { icon: 'clip', bg: 'var(--coral-pale)', val: openComplaints, label: 'Open Complaints', tag: openComplaints > 0 ? 'Pending' : 'All resolved', tagClass: 'tag-orange' },
     ],
