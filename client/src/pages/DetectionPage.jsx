@@ -135,13 +135,7 @@ export default function DetectionPage() {
               </button>
             )}
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {visibleClassrooms.map(cn => (
-              <div key={cn} style={{ padding: '4px 10px', borderRadius: 6, background: cameraOnline ? '#f0fdf4' : 'var(--primary-pale)', color: cameraOnline ? '#16a34a' : 'var(--primary)', fontSize: 11, fontWeight: 700 }}>
-                ● {cn.length > 20 ? cn.substring(0, 18) + '..' : cn}
-              </div>
-            ))}
-          </div>
+
         </div>
       </div>
 

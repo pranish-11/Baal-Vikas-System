@@ -5,7 +5,7 @@ let io = null;
 
 function setupSocket(server) {
   io = new Server(server, {
-    cors: { origin: "*", methods: ["GET", "POST"] },
+    cors: { origin: process.env.CORS_ORIGIN || "*", methods: ["GET", "POST"] },
   });
 
   io.on("connection", (socket) => {

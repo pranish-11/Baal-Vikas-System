@@ -19,7 +19,6 @@ export default function ComplaintsPage() {
     all: complaints.length,
     open: complaints.filter(c => c.status === 'open').length,
     'in-progress': complaints.filter(c => c.status === 'in-progress').length,
-    escalated: complaints.filter(c => c.status === 'escalated').length,
     resolved: complaints.filter(c => c.status === 'resolved').length,
   };
 
@@ -27,7 +26,6 @@ export default function ComplaintsPage() {
     { key: 'all', label: 'All' },
     { key: 'open', label: 'Open' },
     { key: 'in-progress', label: 'In Progress' },
-    { key: 'escalated', label: 'Escalated' },
     { key: 'resolved', label: 'Resolved' },
   ];
 
@@ -80,18 +78,9 @@ export default function ComplaintsPage() {
                     onClick={() => openModal('ticketDetail', { complaintId: c.id })}>
                     View Complaint{replyCount > 0 ? ` (${replyCount})` : ''}
                   </button>
-                  {isParent ? (
-                    !isResolved && (
-                      isEscalated
-                        ? <button className="btn btn-sm" disabled style={{ background: 'var(--coral-pale)', color: 'var(--coral)', border: '1.5px solid var(--coral)', fontWeight: 800, opacity: 0.8, cursor: 'default', padding: '6px 14px', borderRadius: 8 }}>Escalated</button>
-                        : <button className="btn btn-sm" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fb923c', fontWeight: 800, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
-                            onClick={() => escalateComplaint(c.id)}>Escalate</button>
-                    )
-                  ) : (
-                    !isResolved && (
-                      <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #16a34a', fontWeight: 800, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
-                        onClick={() => resolveComplaint(c.id)}><CheckCircle2 size={14} style={{ marginRight: 4 }} /> Resolve</button>
-                    )
+                  {currentRole !== 'parent' && !isResolved && (
+                    <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #16a34a', fontWeight: 800, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
+                      onClick={() => resolveComplaint(c.id)}><CheckCircle2 size={14} style={{ marginRight: 4 }} /> Resolve</button>
                   )}
                 </div>
               </div>

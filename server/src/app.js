@@ -14,7 +14,9 @@ const limiter = rateLimit({
 });
 
 app.use(helmet({ contentSecurityPolicy: false })); // Disable CSP so inline scripts and media devices work
-app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
+const corsRaw = process.env.CORS_ORIGIN || "*";
+const corsOrigin = corsRaw === "*" ? "*" : corsRaw.split(",");
+app.use(cors({ origin: corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("dev"));
 app.use(limiter);

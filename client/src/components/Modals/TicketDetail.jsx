@@ -85,10 +85,6 @@ export default function TicketDetail({ open, onClose, data }) {
                 onChange={e => setReplyText(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleReply(); } }} />
               <button className="btn btn-primary btn-sm" onClick={handleReply}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
-              {!isStaff && (
-                <button className="btn btn-sm" style={{ background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fb923c', fontWeight: 800, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
-                  onClick={() => { escalateComplaint(active.id); }}>Escalate</button>
-              )}
               {isStaff && (
                 <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#15803d', border: '1.5px solid #16a34a', fontWeight: 800, padding: '6px 14px', borderRadius: 8, cursor: 'pointer' }}
                   onClick={() => { resolveComplaint(active.id); }}>Resolve</button>
