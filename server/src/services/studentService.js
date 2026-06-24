@@ -118,11 +118,13 @@ async function awardPoints(id, data, actorId) {
     minute: "2-digit",
   });
 
+  const newScore = Math.max(0, (existing.behaviorScore || 0) + (data.points || 0));
+
   const ops = [
     prisma.student.update({
       where: { id },
       data: {
-        behaviorScore: { increment: data.points },
+        behaviorScore: newScore,
       },
     }),
   ];
@@ -131,9 +133,11 @@ async function awardPoints(id, data, actorId) {
     ops.push(
       prisma.activity.create({
         data: {
-          title: `Awarded ${data.points} points to ${existing.fullName}`,
+          title: data.points >= 0
+            ? `Awarded ${data.points} points to ${existing.fullName}`
+            : `Deducted ${Math.abs(data.points)} points from ${existing.fullName}`,
           desc: data.description,
-          icon: "🌟",
+          icon: data.points >= 0 ? "🌟" : "📉",
           timeLabel,
           studentId: id,
         },
@@ -144,7 +148,7 @@ async function awardPoints(id, data, actorId) {
   const [student] = await prisma.$transaction(ops);
 
   let notification = { sent: false };
-  if (actorId && data.description) {
+  if (actorId && data.description && data.points >= 0) {
     const msg = buildAwardMessage(student.fullName, data.points, data.description);
     notification = await notifyParent(id, msg, actorId);
   }

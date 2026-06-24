@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../contexts/AppContext';
 import StatsGrid from '../components/Dashboard/StatsGrid';
 import ActivityFeed from '../components/Dashboard/ActivityFeed';
@@ -33,10 +34,15 @@ function isLive(timeStr) {
 
 export default function DashboardPage({ onNavigate }) {
   const { currentRole, students, attendanceData, teacherTags, activities, user, openModal, complaints, messages, getTeacherClassrooms, dailyLogs, hasAssignedClasses, getTeacherClassName } = useApp();
+  const [selectedChildIdx, setSelectedChildIdx] = useState(0);
 
   if (currentRole === 'parent') {
     const email = user?.email || '';
-    const child = students.find(s => s.parentEmail && s.parentEmail.toLowerCase() === email.toLowerCase());
+    const myChildren = students.filter(s => s.parentEmail && s.parentEmail.toLowerCase() === email.toLowerCase());
+    const hasChildren = myChildren.length > 0;
+    const safeIdx = hasChildren ? Math.min(selectedChildIdx, myChildren.length - 1) : 0;
+    const child = hasChildren ? myChildren[safeIdx] : null;
+
     const dateStr = new Date().toISOString().slice(0, 10);
     const rec = attendanceData[dateStr] || {};
     const todayStatus = child ? rec[child.id] : null;
@@ -82,11 +88,34 @@ export default function DashboardPage({ onNavigate }) {
     return (
       <>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 900 }}>Welcome back{child ? `, ${user?.email?.split('@')[0] || 'Parent'}` : ''}</div>
+          <div style={{ fontSize: 22, fontWeight: 900 }}>Welcome back{hasChildren ? `, ${user?.email?.split('@')[0] || 'Parent'}` : ''}</div>
           <div style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600, marginTop: 2 }}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </div>
         </div>
+
+        {!hasChildren && (
+          <div className="empty-state" style={{ padding: '40px 20px', textAlign: 'center' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text3)' }}>No child linked to this account.</div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text3)', marginTop: 8, opacity: 0.7 }}>
+              Contact the school to link your child.
+            </div>
+          </div>
+        )}
+
+        {hasChildren && myChildren.length > 1 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+            {myChildren.map((c, i) => (
+              <div key={c.id} onClick={() => setSelectedChildIdx(i)} style={{
+                padding: '6px 14px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 800,
+                background: i === safeIdx ? 'var(--primary)' : 'var(--surface2)',
+                color: i === safeIdx ? '#fff' : 'var(--text2)',
+                border: i === safeIdx ? 'none' : '1.5px solid #e5e7eb',
+                transition: 'all .15s',
+              }}>{c.name}</div>
+            ))}
+          </div>
+        )}
 
         {child && (
           <>

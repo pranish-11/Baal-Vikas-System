@@ -26,7 +26,7 @@ export default function StudentCard({ student, attendanceStatus }) {
     : attendanceStatus === 'present'
     ? <div style={{ position: 'absolute', top: 6, left: 6, background: '#16a34a', color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 20, letterSpacing: .5, boxShadow: '0 2px 6px rgba(22,163,74,0.3)', zIndex: 2 }}>PRESENT</div>
     : attendanceStatus === 'leave'
-    ? <div style={{ position: 'absolute', top: 6, right: 6, background: '#7c3aed', color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 20, letterSpacing: .5, boxShadow: '0 2px 6px rgba(124,58,237,0.3)', zIndex: 2 }}>LEAVE</div>
+    ? <div style={{ position: 'absolute', top: 6, right: 6, background: '#3b82f6', color: '#fff', fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 20, letterSpacing: .5, boxShadow: '0 2px 6px rgba(59,130,246,0.3)', zIndex: 2 }}>LEAVE</div>
     : null;
 
   return (

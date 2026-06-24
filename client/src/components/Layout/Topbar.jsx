@@ -4,7 +4,7 @@ import { Bell, UserPlus, Star, FileWarning, Megaphone, Search } from 'lucide-rea
 const SUBTITLES = {
   dashboard: 'School overview',
   students: 'Student management',
-  detection: 'AI monitoring',
+  detection: '',
   leaderboard: 'Points ranking',
   messages: 'Communication hub',
   complaints: 'All complaints',
