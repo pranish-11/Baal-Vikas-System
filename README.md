@@ -16,6 +16,7 @@ Socket.IO
 🗄️ Database
 MongoDB
 Prisma ORM
+
 ✨ Key Features
 🔐 Role-Based Authentication & Access Control
 👶 Student Profile & Record Management
