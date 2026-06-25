@@ -30,8 +30,8 @@ Prisma ORM
 📊 Dashboard Analytics & Reporting
 📹 CCTV Monitoring Integration for Parents
 ⚡ Real-Time Communication with WebSockets
-🎯 Vision
 
-BaalVikas aims to bridge the gap between schools and families by creating a transparent, child-focused digital ecosystem where parents stay connected, teachers spend less time on administrative tasks, and educational institutions can efficiently manage day-to-day operations.
+
+🎯 Vision BaalVikas aims to bridge the gap between schools and families by creating a transparent, child-focused digital ecosystem where parents stay connected, teachers spend less time on administrative tasks, and educational institutions can efficiently manage day-to-day operations.
 
 Built with ❤️ by Team Axion 
