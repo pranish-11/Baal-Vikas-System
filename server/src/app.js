@@ -10,7 +10,10 @@ const app = express();
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120,
+  max: 300,
+  message: { error: 'Too many requests. Please wait and try again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 app.use(helmet({ contentSecurityPolicy: false })); // Disable CSP so inline scripts and media devices work

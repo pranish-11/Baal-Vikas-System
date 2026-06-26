@@ -97,7 +97,7 @@ export default function DailyLogPage() {
         let s = a.label;
         if (row[a.key + 'Refused']) s += ' (refused)';
         if (row[a.key + 'Details']) s += ': ' + row[a.key + 'Details'];
-        if (row[a.key + 'Time']) s += ' @ ' + row[a.key + 'Time'];
+        if (row[a.key + 'Time']) s += ' ' + row[a.key + 'Time'];
         parts.push(s);
       }
     });
@@ -181,7 +181,7 @@ export default function DailyLogPage() {
       let patch;
       switch (preset) {
         case 'full': patch = { ate: true, nap: true, play: true, outdoor: true, snack: true, ateRefused: false, snackRefused: false, mood: 'happy', overallRating: 5 }; break;
-        case 'half': patch = { ate: true, nap: true, play: false, outdoor: false, snack: true, ateRefused: false, snackRefused: false }; break;
+        case 'half': patch = { ate: true, nap: false, play: false, outdoor: false, snack: false, ateRefused: false, snackRefused: false }; break;
         case 'reset': patch = { ate: false, nap: false, play: false, outdoor: false, snack: false, ateRefused: false, ateDetails: '', ateTime: '', napDetails: '', napTime: '', playDetails: '', playTime: '', outdoorDetails: '', outdoorTime: '', snackDetails: '', snackRefused: false, snackTime: '', mood: '', learning: '', social: '', health: '', overallRating: 0, note: '' }; break;
         default: return;
       }
@@ -240,10 +240,9 @@ export default function DailyLogPage() {
         marginBottom: 28, paddingBottom: 20,
         borderBottom: '1px solid #f0eeea',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div className="dl-page-header">
           <div>
-            <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.6, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--primary)', display: 'inline-block' }} />
+            <div className="dl-page-title">
               Daily Log
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#aaa', fontWeight: 600, marginTop: 4, letterSpacing: -0.1 }}>
@@ -252,7 +251,7 @@ export default function DailyLogPage() {
               <span>{studentCount} student{studentCount !== 1 ? 's' : ''}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <div className="dl-page-actions">
             {[
               { key: 'full', label: 'Full Day', icon: Zap, bg: '#f0f9f6', color: '#2a8a6a', border: '#d0e8df' },
               { key: 'half', label: 'Half Day', icon: null, bg: '#faf9f7', color: '#888', border: '#eae7e2' },
@@ -280,7 +279,7 @@ export default function DailyLogPage() {
       </div>
 
       {/* Bulk toggle row */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="dl-bulk-row">
         {ACTIVITIES.map(a => {
           const allOn = visibleStudents.every(s => (logsRef.current[s.id]?.[dateStr] || getDefaultRow())[a.key]);
           const isPlay = a.key === 'play';
@@ -326,10 +325,7 @@ export default function DailyLogPage() {
               ':hover': { boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
             }}>
               {/* Card header row */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '12px 16px', cursor: 'pointer',
-              }}
+              <div className="dl-card-hdr"
                 onClick={() => setExpanded({ ...expanded, [s.id]: !isExpanded })}>
                 {/* Avatar */}
                 <div style={{
@@ -343,48 +339,40 @@ export default function DailyLogPage() {
                 </div>
 
                 {/* Name */}
-                <div style={{
-                  fontWeight: 800, fontSize: 13, flex: '0 0 100px',
+                <div className="dl-card-name" style={{
                   color: isDirty ? '#1a6b55' : '#1a1a2e', letterSpacing: -0.15,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{s.name}</div>
 
                 {/* Quick toggle badges */}
-                <div style={{ display: 'flex', gap: 4, flex: '0 0 auto' }}>
+                <div className="dl-card-badges">
                   {ACTIVITIES.map(a => {
                     const on = row[a.key];
+                    const AIcon = a.icon;
                     return (
                       <div key={a.key} onClick={e => { e.stopPropagation(); updateRow(s.id, { [a.key]: !on }); if (!on) setExpanded({ ...expanded, [s.id]: true }); }}
+                        className="dl-badge"
                         style={{
-                          padding: '5px 8px', borderRadius: 8, cursor: 'pointer', userSelect: 'none',
-                          display: 'flex', alignItems: 'center', gap: 3, position: 'relative',
                           background: on ? a.color + '14' : '#f8f7f5',
                           border: on ? `1.5px solid ${a.color}40` : '1.5px solid transparent',
-                          fontWeight: 700, fontSize: 10, letterSpacing: -0.1,
                           color: on ? a.color : '#b0a898',
-                          transition: 'all .12s',
                           opacity: isSaving ? 0.5 : 1,
-                          whiteSpace: 'nowrap',
                         }}>
-                        {on ? <Check size={10} /> : <X size={10} />}
-                        {a.label}
+                        <AIcon size={11} />
+                        <span className="dl-badge-txt">{a.label}</span>
                       </div>
                     );
                   })}
                 </div>
 
                 {/* Summary text */}
-                <div style={{
-                  flex: 1, minWidth: 60, fontSize: 11,
+                <div className="dl-card-summary" style={{
                   color: !anyOn ? 'var(--text3)' : '#1a6b55',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   {anyOn ? getActivitySummary(row) : '—'}
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <div className="dl-card-actions">
                   <button onClick={e => { e.stopPropagation(); saveRow(s.id); }} disabled={!isDirty || isSaving}
                     style={{
                       padding: '6px 10px', borderRadius: 8, border: 'none',
@@ -410,7 +398,7 @@ export default function DailyLogPage() {
 
               {/* Expanded detail section */}
               {isExpanded && (
-                <div style={{ padding: '0 16px 14px 62px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="dl-expanded">
                   {/* Mood */}
                   <div style={{ padding: 12, borderRadius: 12, background: '#fefce8', border: '1px solid #fde68a' }}>
                     <div style={{ fontSize: 11, fontWeight: 800, color: '#a16207', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -465,7 +453,7 @@ export default function DailyLogPage() {
                             </label>
                           </div>
                           {on && (
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <div className="dl-activity-row">
                               {a.refusedLabel && (
                                 <label style={{
                                   display: 'flex', alignItems: 'center', gap: 4,
@@ -481,7 +469,7 @@ export default function DailyLogPage() {
                                   <ThumbsDown size={11} /> {a.refusedLabel}
                                 </label>
                               )}
-                              <div style={{ flex: 1, minWidth: 120, display: 'flex', gap: 8, alignItems: 'center' }}>
+                              <div className="dl-activity-input">
                                 <input style={{
                                   flex: 1, padding: '6px 10px', borderRadius: 8,
                                   border: '1px solid #ddd', fontSize: 11, fontWeight: 600,
@@ -493,11 +481,8 @@ export default function DailyLogPage() {
                                   onChange={e => updateRow(s.id, { [a.key + 'Details']: e.target.value })}
                                 />
                                 {row[a.key + 'Time'] && (
-                                  <span style={{
-                                    padding: '5px 10px', borderRadius: 6,
+                                  <span className="dl-time-chip" style={{
                                     background: a.color + '15', color: a.color,
-                                    fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                                    display: 'flex', alignItems: 'center', gap: 3,
                                   }}>
                                     <Clock size={10} /> {row[a.key + 'Time']}
                                   </span>

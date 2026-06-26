@@ -30,19 +30,19 @@ export default function StudentCard({ student, attendanceStatus }) {
     : null;
 
   return (
-    <div className="student-card" style={{ position: 'relative', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
+    <div className="student-card sc-card" style={{ position: 'relative', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
       {attBadge}
       <div style={{ padding: '20px 16px 0', textAlign: 'center', width: '100%' }}>
         <div style={{ position: 'relative', display: 'inline-block' }}>
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: aviBg, color: aviColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, margin: '0 auto 8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div className="sc-avi" style={{ width: 52, height: 52, borderRadius: '50%', background: aviBg, color: aviColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, margin: '0 auto 8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
             {avatarSrc ? <img src={avatarSrc} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : init}
           </div>
-          <div style={{ position: 'absolute', bottom: 6, right: -4, background: rankBg, color: rank <= 3 ? '#fff' : 'rgba(0,0,0,0.4)', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+          <div className="sc-rank" style={{ position: 'absolute', bottom: 6, right: -4, background: rankBg, color: rank <= 3 ? '#fff' : 'rgba(0,0,0,0.4)', width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
             {rank <= 3 ? <Award size={11} style={{ color: '#fff' }} /> : `#${rank}`}
           </div>
         </div>
-        <div style={{ fontSize: 14, fontWeight: 800 }}>{name}</div>
-        <div style={{ fontSize: 11, color: 'rgba(0,0,0,0.45)', fontWeight: 600, marginTop: 1 }}>{sClass} · Age {age}</div>
+        <div className="sc-name" style={{ fontSize: 14, fontWeight: 800 }}>{name}</div>
+        <div className="sc-class" style={{ fontSize: 11, color: 'rgba(0,0,0,0.45)', fontWeight: 600, marginTop: 1 }}>{sClass} · Age {age}</div>
       </div>
       {tags.length > 0 ? (
         <div className="tag-scroll" style={{ padding: '6px 14px 0', overflowX: 'auto', whiteSpace: 'nowrap', display: 'flex', gap: 4, justifyContent: 'center', width: '100%' }}>
@@ -65,8 +65,8 @@ export default function StudentCard({ student, attendanceStatus }) {
           </span>
         </div>
       )}
-      <div style={{ flex: 1 }} />
-      <div style={{ padding: '10px 14px 14px', width: '100%' }}>
+      <div className="sc-footer-spacer" style={{ flex: 1 }} />
+      <div className="sc-footer" style={{ padding: '10px 14px 14px', width: '100%' }}>
         <div style={{ width: '100%', marginBottom: 4 }}>
           <div className="stu-bar-wrap"><div className="stu-bar" style={{ width: `${20 + (pct / 100) * 80}%`, background: barColor }} /></div>
           <div className="stu-bar-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

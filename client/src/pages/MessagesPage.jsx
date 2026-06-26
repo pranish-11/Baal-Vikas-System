@@ -6,6 +6,7 @@ import { API_BASE } from '../config';
 
 export default function MessagesPage() {
   const { messages, setMessages, currentRole, openModal, sendMsg, setCurrentMsgId, currentMsgId, deleteConversation, user, editMessage, deleteMessage } = useApp();
+  const [mobileView, setMobileView] = useState('list');
   const myId = user?.id || (user?.email || '').replace(/[^a-z0-9]/gi, '_');
   const myEmailId = (user?.email || '').replace(/[^a-z0-9]/gi, '_');
   const myName = user?.name || '';
@@ -91,15 +92,26 @@ export default function MessagesPage() {
 
   useEffect(() => {
     refreshMessages();
-    pollRef.current = setInterval(refreshMessages, 10000);
+    pollRef.current = setInterval(refreshMessages, 15000);
     return () => clearInterval(pollRef.current);
   }, [refreshMessages]);
+
+  // Fix mobile keyboard overlap: adjust layout when viewport resizes
+  useEffect(() => {
+    const onResize = () => {
+      const vh = window.visualViewport?.height || window.innerHeight;
+      document.querySelector('.msg-layout')?.style.setProperty('--vh', `${vh}px`);
+    };
+    window.visualViewport?.addEventListener('resize', onResize);
+    return () => window.visualViewport?.removeEventListener('resize', onResize);
+  }, []);
 
   const currentMsg = messages.find(m => m.id === currentMsgId);
   const currentContact = currentMsg ? getContact(currentMsg) : null;
 
   const switchMsg = (id) => {
     setCurrentMsgId(id);
+    setMobileView('chat');
     setMessages(prev => prev.map(m => m.id === id ? { ...m, unread: false } : m));
     const token = localStorage.getItem('axion_token');
     if (token && !id?.startsWith('msg-')) {
@@ -127,8 +139,8 @@ export default function MessagesPage() {
   };
 
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
-      <div className="msg-layout">
+      <div className="card" style={{ overflow: 'hidden' }}>
+      <div className={`msg-layout ${mobileView === 'chat' ? 'show-chat' : 'show-list'}`}>
         <div className="msg-list">
           <div className="msg-list-header" style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -183,6 +195,7 @@ export default function MessagesPage() {
           ) : (
             <>
               <div className="msg-pane-header">
+                <button className="msg-back-btn" onClick={() => setMobileView('list')} style={{ background:'none', border:'none', cursor:'pointer', padding:4, borderRadius:6, color:'var(--text2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>‹</button>
                 <div className="user-avi" style={{ background: currentContact.aColor, color: currentContact.aText, fontSize: 13, fontWeight: 800, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{currentContact.avi}</div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800 }}>{currentContact.name}</div>
@@ -190,7 +203,7 @@ export default function MessagesPage() {
                 </div>
                 <button style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--coral)', padding: 6, borderRadius: 6, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700 }}
                   onClick={() => deleteConversation(currentMsg.id)} title="Delete conversation">
-                  <Trash2 size={14} /> Delete
+                  <Trash2 size={14} /> <span className="btn-txt">Delete</span>
                 </button>
               </div>
               <div className="msg-chat-area">

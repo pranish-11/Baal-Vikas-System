@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { UserPlus } from 'lucide-react';
+import { API_BASE } from '../../config';
 
 export default function StudentModal({ open, onClose }) {
   const { students, submitStudent, getAllClasses } = useApp();
@@ -10,10 +11,10 @@ export default function StudentModal({ open, onClose }) {
   const [classroom, setClassroom] = useState('');
   const [customClass, setCustomClass] = useState('');
   const [showCustom, setShowCustom] = useState(false);
-  const [parentName, setParentName] = useState('');
-  const [parentEmail, setParentEmail] = useState('');
+  const [selectedParent, setSelectedParent] = useState('');
   const [enrollment, setEnrollment] = useState('');
   const [medical, setMedical] = useState('');
+  const [parents, setParents] = useState([]);
 
   const allClasses = getAllClasses();
 
@@ -25,16 +26,21 @@ export default function StudentModal({ open, onClose }) {
       setClassroom('');
       setCustomClass('');
       setShowCustom(false);
-      setParentName('');
-      setParentEmail('');
+      setSelectedParent('');
       setEnrollment('');
       setMedical('');
+      const token = localStorage.getItem('axion_token');
+      fetch(`${API_BASE}/users?role=PARENT`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => setParents(d.users || []))
+        .catch(() => {});
     }
   }, [open]);
 
   if (!open) return null;
 
   const effectiveClass = showCustom ? customClass : classroom;
+  const parent = parents.find(p => p.id === selectedParent);
 
   return (
     <div className="modal-backdrop open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -71,13 +77,21 @@ export default function StudentModal({ open, onClose }) {
             )}
           </div>
         </div>
-        <div className="form-group-m"><label className="form-label-m">Parent / Guardian Name</label><input className="form-input-m" value={parentName} onChange={e => setParentName(e.target.value)} placeholder="Full name" /></div>
-        <div className="form-group-m"><label className="form-label-m">Parent Contact Email</label><input className="form-input-m" value={parentEmail} onChange={e => setParentEmail(e.target.value)} placeholder="parent@email.com" /></div>
+        <div className="form-group-m"><label className="form-label-m">Parent</label>
+          <select className="form-select-m" value={selectedParent} onChange={e => setSelectedParent(e.target.value)}>
+            <option value="">Select a parent...</option>
+            {parents.map(p => <option key={p.id} value={p.id}>{p.name} ({p.email})</option>)}
+          </select>
+        </div>
         <div className="form-group-m"><label className="form-label-m">Enrollment Date</label><input className="form-input-m" type="date" value={enrollment} onChange={e => setEnrollment(e.target.value)} /></div>
         <div className="form-group-m"><label className="form-label-m">Medical / Dietary Notes</label><textarea className="form-textarea-m" value={medical} onChange={e => setMedical(e.target.value)} placeholder="Allergies, conditions..." /></div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-primary" onClick={() => submitStudent({ firstName, lastName, age: parseInt(age) || 0, className: effectiveClass, parentName, parentEmail, enrollmentDate: enrollment, medicalNotes: medical })}>Register Student</button>
+          <button className="btn btn-primary" onClick={() => submitStudent({
+            firstName, lastName, age: parseInt(age) || 0, className: effectiveClass,
+            parentName: parent?.name || '', parentEmail: parent?.email || '',
+            enrollmentDate: enrollment, medicalNotes: medical,
+          })}>Register Student</button>
         </div>
       </div>
     </div>

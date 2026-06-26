@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
-export default function AppLayout({ children, onOpenModal, onToggleNotif, notifCount, onOpenSearch }) {
+export default function AppLayout({ children, pageKey, onOpenModal, onToggleNotif, notifCount, onOpenSearch }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -10,14 +10,16 @@ export default function AppLayout({ children, onOpenModal, onToggleNotif, notifC
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="main-area">
         <Topbar
-          onOpenSidebar={() => setSidebarOpen(true)}
+          onOpenSidebar={() => setSidebarOpen(prev => !prev)}
           onOpenModal={onOpenModal}
           onToggleNotif={onToggleNotif}
           notifCount={notifCount}
           onOpenSearch={onOpenSearch}
         />
         <div className="content-area">
-          {children}
+          <div className="page-enter" key={pageKey}>
+            {children}
+          </div>
         </div>
       </div>
     </div>

@@ -134,7 +134,7 @@ async function saveAttendance(data, user) {
     if (student && student.parentEmail) {
       const msg = buildAttendanceMessage(student.fullName, "absent");
       await notifyParent(studentId, msg, user.userId).catch(() => {});
-      await notifyParentViaNotification(studentId, `${student.fullName} is absent`, `Marked absent today`, "attendance", null).catch(() => {});
+      await notifyParentViaNotification(studentId, `${student.fullName} is absent`, "Marked absent today", "attendance", null).catch(err => console.error("[attendanceService] notifyParentViaNotification:", err.message));
     }
   }
 

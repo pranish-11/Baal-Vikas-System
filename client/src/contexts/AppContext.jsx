@@ -353,7 +353,8 @@ export function AppProvider({ children }) {
         setStudents(prev => [...prev, result.item]);
       }
       await refreshData();
-      showToast('Student registered successfully!');
+      const pwMsg = result.parentPassword ? ` Parent login: ${payload.parentEmail} / ${result.parentPassword}` : '';
+      showToast('Student registered successfully!' + pwMsg);
     } catch (e) {
       const student = {
         id: 'std-' + Date.now(), name: `${payload.firstName} ${payload.lastName}`,

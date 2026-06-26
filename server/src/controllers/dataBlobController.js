@@ -75,7 +75,7 @@ async function notifyParentsAboutDailyLogs(logsData, actorId) {
     const msg = `📋 Today's report for ${student.fullName}:\n${lines.join('\n')}`;
     await notifyParent(studentId, msg, actorId);
     const summary = lines.slice(0, 3).join('. ');
-    await notifyParentViaNotification(studentId, `Daily log updated: ${student.fullName}`, summary, "daily_log", null).catch(() => {});
+    await notifyParentViaNotification(studentId, `Daily log updated: ${student.fullName}`, summary, "daily_log", null).catch(err => console.error("[dataBlobController] notifyParentViaNotification:", err.message));
   }
 }
 

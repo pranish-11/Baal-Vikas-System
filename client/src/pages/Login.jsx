@@ -90,7 +90,7 @@ export default function Login() {
   ];
 
   return (
-    <div id="login-screen" style={{ display: 'flex' }}>
+    <div id="login-screen">
       <div className="login-card" style={{ display: mode === 'login' ? 'block' : 'none', padding: '40px 40px 32px' }}>
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{ width: 48, height: 48, borderRadius: 16, background: 'var(--primary-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>

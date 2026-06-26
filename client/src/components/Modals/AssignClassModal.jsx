@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useApp } from '../../contexts/AppContext';
+import { School, Check, BookOpen, Users } from 'lucide-react';
 
 export default function AssignClassModal({ open, onClose }) {
   const { students, teacherClassrooms, saveTeacherClassrooms } = useApp();
@@ -47,43 +48,104 @@ export default function AssignClassModal({ open, onClose }) {
 
   return (
     <div className="modal-backdrop open" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-box" style={{ maxWidth: 460 }}>
-        <div className="modal-title" style={{ marginBottom: 14 }}>Assign Classrooms to Teachers</div>
+      <div className="modal-box" style={{ maxWidth: 480 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--lavender-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <BookOpen size={18} style={{ color: 'var(--lavender)' }} />
+          </div>
+          <div>
+            <div className="modal-title" style={{ marginBottom: 2 }}>Assign Classrooms</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>Select a teacher and choose their classrooms</div>
+          </div>
+        </div>
 
         <div className="form-group-m">
           <label className="form-label-m">Teacher</label>
-          <select className="form-select-m" value={selTeacher} onChange={e => setSelTeacher(e.target.value)}>
-            <option value="">Select a teacher...</option>
-            {teachers.map(([email, name]) => (
-              <option key={email} value={email}>{name} ({email})</option>
-            ))}
-          </select>
-          {teachers.length === 0 && (
-            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>No teacher accounts found. Teachers must log in at least once to appear here.</div>
+          {teachers.length === 0 ? (
+            <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--sky-pale)', fontSize: 12, color: 'var(--sky)', fontWeight: 600, border: '1px solid rgba(74,140,196,0.2)' }}>
+              No teacher accounts found. Teachers must log in at least once to appear here.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'var(--border2) transparent' }}>
+              {teachers.map(([email, name]) => {
+                const active = email === selTeacher;
+                return (
+                  <div key={email} onClick={() => setSelTeacher(email)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8,
+                      cursor: 'pointer', transition: 'all .15s',
+                      background: active ? 'var(--sky-pale)' : '#fff',
+                      border: `1.5px solid ${active ? 'var(--sky)' : 'var(--border)'}`,
+                    }}>
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: 'var(--sky-pale)', color: 'var(--sky)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 800, flexShrink: 0,
+                    }}>
+                      {(name || email).substring(0, 2).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: active ? 800 : 700, color: active ? 'var(--sky)' : 'var(--text)' }}>{name}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{email}</div>
+                    </div>
+                    {active && <Check size={14} style={{ color: 'var(--sky)', flexShrink: 0 }} />}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
         {selTeacher && (
           <>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-              <button className="btn btn-sm btn-primary" onClick={setAll}>All Classrooms</button>
-              <button className="btn btn-sm btn-ghost" onClick={clearAll}>Clear</button>
-              <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text3)', fontWeight: 600, alignSelf: 'center' }}>
-                {currentAssignments.length} / {classrooms.length} assigned
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, marginTop: 4 }}>
+              <div style={{ flex: 1, fontSize: 12, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <School size={13} style={{ marginRight: 4, verticalAlign: 'text-bottom' }} />
+                Classrooms
+              </div>
+              <button className="btn btn-sm btn-primary" onClick={setAll} style={{ fontSize: 11, padding: '5px 12px' }}>All</button>
+              <button className="btn btn-sm btn-ghost" onClick={clearAll} style={{ fontSize: 11, padding: '5px 12px' }}>Clear</button>
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 700, background: 'var(--surface2)', padding: '4px 10px', borderRadius: 6 }}>
+                {currentAssignments.length}/{classrooms.length}
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {classrooms.map(cls => {
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'var(--border2) transparent' }}>
+              {classrooms.length === 0 ? (
+                <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 13, fontWeight: 600 }}>
+                  No classrooms available. Create classes first in Manage Classes.
+                </div>
+              ) : classrooms.map(cls => {
                 const checked = currentAssignments.includes(cls);
+                const count = students.filter(s => s.class === cls).length;
                 return (
                   <div key={cls} onClick={() => toggleClass(cls)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, cursor: 'pointer', background: checked ? 'var(--primary-pale)' : 'var(--surface2)', border: `1.5px solid ${checked ? 'var(--primary)' : 'transparent'}`, transition: 'all .1s' }}>
-                    <div style={{ width: 18, height: 18, borderRadius: 4, border: `2px solid ${checked ? 'var(--primary)' : 'var(--text3)'}`, background: checked ? 'var(--primary)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      {checked && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10,
+                      cursor: 'pointer', transition: 'all .15s',
+                      background: checked ? 'var(--primary-pale)' : '#fff',
+                      border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
+                    }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: 6,
+                      border: `2px solid ${checked ? 'var(--primary)' : 'var(--text3)'}`,
+                      background: checked ? 'var(--primary)' : 'transparent',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      transition: 'all .15s',
+                    }}>
+                      {checked && <Check size={12} strokeWidth={3} style={{ color: '#fff' }} />}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: checked ? 800 : 600, color: checked ? 'var(--primary)' : 'var(--text1)' }}>{cls}</div>
-                    <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
-                      {students.filter(s => s.class === cls).length} students
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: checked ? 'rgba(46,125,107,0.12)' : 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <School size={14} style={{ color: checked ? 'var(--primary)' : 'var(--text3)' }} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: checked ? 800 : 600, color: checked ? 'var(--primary)' : 'var(--text)' }}>{cls}</div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text3)', fontWeight: 600, flexShrink: 0 }}>
+                      <Users size={12} />
+                      {count}
                     </div>
                   </div>
                 );
@@ -92,8 +154,8 @@ export default function AssignClassModal({ open, onClose }) {
           </>
         )}
 
-        <div className="modal-footer" style={{ marginTop: 14 }}>
-          <button className="btn btn-ghost" onClick={onClose}>Done</button>
+        <div className="modal-footer" style={{ marginTop: 16 }}>
+          <button className="btn btn-ghost" onClick={onClose} style={{ padding: '9px 20px' }}>Done</button>
         </div>
       </div>
     </div>
