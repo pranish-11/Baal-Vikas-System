@@ -105,7 +105,7 @@ router.post("/", async (req, res, next) => {
       prisma.dataBlob.findUnique({ where: { key: "axion_teacher_tags" } }),
       prisma.dataBlob.findUnique({ where: { key: "axion_daily_logs" } }),
       prisma.complaint.findMany({
-        where: { student: { contains: student.fullName || student.name, mode: "insensitive" } },
+        where: { filedByUserId: user.userId },
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
@@ -140,24 +140,28 @@ router.post("/", async (req, res, next) => {
 
     try {
       const result = await groq.chat.completions.create({
-        model: "llama-3.1-8b-instant",
+        model: "llama-3.3-70b-versatile",
         messages: [
           {
             role: "system",
-            content: `You are Axion AI, a friendly assistant for parents asking about their child's day at daycare.
-You have REAL data about the student below. STRICT RULES:
-- Report ONLY what is explicitly stated in the data — no inferences, no assumptions, no guesses.
-- NEVER connect separate data points or imply one event caused another — just state the facts independently.
-- If the data is not enough to answer, say "I don't have that information" — do not guess.
-- Keep answers concise (2-4 sentences), warm, and conversational. Format with markdown.`,
+            content: `You are Axion AI, a concise assistant for parents checking on their child at daycare.
+
+Rules:
+- Get straight to the point. No greetings, no "I'm so happy to help", no filler phrases.
+- Use ONLY the student data provided. Give specific facts from it.
+- Keep answers short: 2-5 sentences max unless a detailed breakdown is asked for.
+- Use **bold** for key info and bullet points for lists.
+- If data is missing for something asked, say it briefly and move on.
+- For casual messages like "hi", "yoo", etc. — respond in one short friendly line only.
+- Never repeat yourself. Never pad answers.`,
           },
           {
             role: "user",
             content: `STUDENT DATA:\n${contextData}\n\n---\n\nThe parent asks: "${question}"`,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 500,
+        temperature: 0.4,
+        max_tokens: 1024,
       });
 
       const answer = result.choices[0]?.message?.content || "No response.";

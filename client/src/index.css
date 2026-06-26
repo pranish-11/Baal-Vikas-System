@@ -678,6 +678,14 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);disp
 .modal-box::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 .modal-box::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 
+/* ─── AI CHATBOT SCROLL ─────────────────────────── */
+.ai-chat-scroll{scrollbar-width:thin;scrollbar-color:var(--primary-pale) transparent}
+.ai-chat-scroll::-webkit-scrollbar{width:5px}
+.ai-chat-scroll::-webkit-scrollbar-track{background:transparent;margin:6px 0}
+.ai-chat-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--primary-light),var(--primary));border-radius:99px;transition:opacity .2s}
+.ai-chat-scroll::-webkit-scrollbar-thumb:hover{background:var(--primary);opacity:1}
+.ai-chat-scroll::-webkit-scrollbar-thumb:active{background:var(--primary)}
+
 /* Sidebar scrollbar — thin, minimal */
 .sidebar-nav::-webkit-scrollbar{width:4px}
 .sidebar-nav::-webkit-scrollbar-track{background:transparent}
