@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { Bot, Send, User, Sparkles } from 'lucide-react';
+import { Leaf, Send, User, Sparkles } from 'lucide-react';
 import { API_BASE } from '../../config';
 
 function TypingDots() {
@@ -89,7 +89,7 @@ export default function AIChatbotModal({ open, onClose, data }) {
       <div className="modal-box" style={{ maxWidth: 480, padding: 0, overflow: 'hidden', borderRadius: 'var(--radius-xl)', boxShadow: '0 8px 40px rgba(0,0,0,0.15)' }}>
         <div style={{ background: 'linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bot size={20} style={{ color: '#fff' }} />
+            <Leaf size={20} style={{ color: '#fff' }} />
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 900, color: '#fff' }}>Axion AI Assistant</div>
@@ -115,7 +115,7 @@ export default function AIChatbotModal({ open, onClose, data }) {
             <div key={i} style={{ animation: m.from === 'bot' && i > 0 ? 'fadeIn 0.25s ease' : undefined }}>
               <div style={{ display: 'flex', gap: 8, flexDirection: m.from === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: m.from === 'user' ? 'var(--coral-pale)' : 'var(--primary-pale)', color: m.from === 'user' ? 'var(--coral)' : 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 12 }}>
-                  {m.from === 'user' ? <User size={14} /> : <Bot size={14} />}
+                  {m.from === 'user' ? <User size={14} /> : <Leaf size={14} />}
                 </div>
                 <div style={{ maxWidth: '80%', padding: '8px 14px', borderRadius: m.from === 'user' ? '16px 4px 16px 16px' : '4px 16px 16px 16px', background: m.from === 'user' ? 'var(--primary)' : '#fff', color: m.from === 'user' ? '#fff' : 'var(--text)', fontSize: 13, fontWeight: 600, lineHeight: 1.6, whiteSpace: 'pre-line', boxShadow: m.from === 'bot' ? '0 1px 3px rgba(0,0,0,0.06)' : undefined }}>
                   {m.typing ? (

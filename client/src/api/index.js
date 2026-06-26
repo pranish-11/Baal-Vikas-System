@@ -6,7 +6,8 @@ export async function requestJSON(url, options = {}) {
     options.headers = { ...options.headers, 'Authorization': `Bearer ${token}` };
   }
   const res = await fetch(url, options);
-  const data = await res.json().catch(() => ({}));
+  let data = {};
+  try { data = await res.json(); } catch { data = { error: await res.text().catch(() => '') || `Request failed (${res.status})` }; }
   if (!res.ok) {
     throw new Error(data.error || `Request failed (${res.status})`);
   }

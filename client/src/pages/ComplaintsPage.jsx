@@ -32,8 +32,8 @@ export default function ComplaintsPage() {
   const list = filter === 'all' ? complaints : complaints.filter(c => c.status === filter);
 
   return (
-    <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+    <div className="complaints-wrap">
+      <div className="complaints-filters" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10, flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {tabs.map(t => (
             <div key={t.key} className={`complaint-filter-chip${filter === t.key ? ' active' : ''}`} onClick={() => setFilter(t.key)}>
@@ -42,7 +42,7 @@ export default function ComplaintsPage() {
           ))}
         </div>
         {currentRole === 'parent' && (
-          <button className="btn btn-primary btn-sm" onClick={() => openModal('complaint')}>+ File Complaint</button>
+          <button className="btn btn-primary btn-sm" onClick={() => openModal('complaint')} style={{ marginLeft: 'auto' }}>+ File Complaint</button>
         )}
       </div>
       <div id="complaints-list">
@@ -58,7 +58,7 @@ export default function ComplaintsPage() {
           const replyCount = c.replies ? c.replies.length : 0;
 
           return (
-            <div key={c.id} className="complaint-card">
+            <div key={c.id} className="complaint-card card-lift">
               <div className="c-icon">{c.icon}</div>
               <div className="c-body">
                 <div className="c-title">{c.title}</div>
@@ -88,6 +88,6 @@ export default function ComplaintsPage() {
           );
         })}
       </div>
-    </>
+    </div>
   );
 }

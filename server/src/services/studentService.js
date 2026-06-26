@@ -1,5 +1,7 @@
 const prisma = require("../lib/prisma");
-const { notifyParent, buildAwardMessage, buildBehaviourMessage } = require("./notificationService");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+const { notifyParent, notifyParentViaNotification, buildAwardMessage, buildBehaviourMessage } = require("./notificationService");
 const { getIO } = require("../socket");
 
 // Helper to determine text color based on background
@@ -89,6 +91,25 @@ async function createStudent(data) {
     });
   }
 
+  // Auto-create parent user account if parentEmail provided and no user exists
+  let parentPassword = null;
+  if (data.parentEmail) {
+    const existingParent = await prisma.user.findUnique({ where: { email: data.parentEmail } });
+    if (!existingParent) {
+      parentPassword = crypto.randomBytes(4).toString("hex"); // 8-char random password
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(parentPassword, salt);
+      await prisma.user.create({
+        data: {
+          name: data.parentName || data.parentEmail.split("@")[0],
+          email: data.parentEmail,
+          passwordHash,
+          role: "PARENT",
+        },
+      });
+    }
+  }
+
   const bg = student.avatarColor;
   return {
     id: student.id,
@@ -102,6 +123,7 @@ async function createStudent(data) {
     col: getTextColorForBg(bg),
     init: student.avatarInitials,
     barColor: "var(--primary)",
+    parentPassword, // null if user already existed or no email provided
   };
 }
 
@@ -151,6 +173,7 @@ async function awardPoints(id, data, actorId) {
   if (actorId && data.description && data.points >= 0) {
     const msg = buildAwardMessage(student.fullName, data.points, data.description);
     notification = await notifyParent(id, msg, actorId);
+    notifyParentViaNotification(id, data.title || '', data.description, 'behaviour', null).catch(() => {});
   }
 
   try {
@@ -298,6 +321,10 @@ async function updateBehaviourScore(id, delta, actorId, description) {
   if (actorId && description) {
     const msg = buildBehaviourMessage(existing.fullName, delta, description);
     await notifyParent(id, msg, actorId).catch(() => {});
+    const notifTitle = isPositive
+      ? `Positive behaviour +${delta} for ${existing.fullName}`
+      : `Negative behaviour ${delta} for ${existing.fullName}`;
+    notifyParentViaNotification(id, notifTitle, description, 'behaviour', null).catch(() => {});
   }
 
   try {

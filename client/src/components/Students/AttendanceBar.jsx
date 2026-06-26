@@ -66,48 +66,40 @@ export default function AttendanceBar({ visibleStudents: propStudents }) {
             </div>
           </div>
 
-          <div id="attendance-summary-bar" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-            {marked === 0 ? (
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>No records yet</span>
-            ) : (
-              <>
-                <span style={{ fontSize: 16, fontWeight: 900, color: pct >= 80 ? C.present : pct >= 50 ? C.late : C.absent }}>{pct}%</span>
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
-                  background: C.present + '15', color: C.present, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.present + '30',
-                }}>
-                  <CheckCircle2 size={10} />{present} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(present)}%)</span>
-                </span>
-                {late > 0 && <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
-                  background: C.late + '15', color: C.late, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.late + '30',
-                }}>
-                  <Clock size={10} />{late} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(late)}%)</span>
-                </span>}
-                {absent > 0 && <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
-                  background: C.absent + '15', color: C.absent, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.absent + '30',
-                }}>
-                  <XCircle size={10} />{absent} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(absent)}%)</span>
-                </span>}
-                {leave > 0 && <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
-                  background: C.leave + '15', color: C.leave, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.leave + '30',
-                }}>
-                  <CalendarOff size={10} />{leave} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(leave)}%)</span>
-                </span>}
-                {unmarked > 0 && <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
-                  background: 'var(--surface2)', color: 'var(--text3)', fontSize: 11, fontWeight: 800, border: '1px solid var(--border)',
-                }}>
-                  <MinusCircle size={10} />{unmarked}
-                </span>}
-              </>
-            )}
-            <button onClick={() => openModal('attendance', { date: selectedDate })}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: "'Nunito',sans-serif", cursor: 'pointer', transition: 'all .2s', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(46,125,107,0.25)' }}>
-              <ClipboardCheck size={14} /> Mark
-            </button>
+          <div className="att-summary">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 16, fontWeight: 900, color: pct >= 80 ? C.present : pct >= 50 ? C.late : C.absent }}>{pct}%</span>
+              <span className="att-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
+                background: C.present + '15', color: C.present, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.present + '30',
+              }}>
+                <CheckCircle2 size={10} />{present} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(present)}%)</span>
+              </span>
+              <span className="att-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
+                background: C.late + '15', color: C.late, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.late + '30',
+              }}>
+                <Clock size={10} />{late} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(late)}%)</span>
+              </span>
+              <span className="att-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
+                background: C.absent + '15', color: C.absent, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.absent + '30',
+              }}>
+                <XCircle size={10} />{absent} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(absent)}%)</span>
+              </span>
+              <span className="att-pill" style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: 16,
+                background: C.leave + '15', color: C.leave, fontSize: 11, fontWeight: 800, border: '1px solid ' + C.leave + '30',
+              }}>
+                <CalendarOff size={10} />{leave} <span style={{ fontWeight: 600, opacity: 0.6 }}>({statusPct(leave)}%)</span>
+              </span>
+            </div>
+            <div className="att-mark-wrap">
+              <button className="att-mark-btn" onClick={() => openModal('attendance', { date: selectedDate })}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: 'var(--primary)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 12, fontWeight: 800, fontFamily: "'Nunito',sans-serif", cursor: 'pointer', transition: 'all .2s', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(46,125,107,0.25)' }}>
+                <ClipboardCheck size={14} /> Mark
+              </button>
+            </div>
           </div>
         </div>
       </div>

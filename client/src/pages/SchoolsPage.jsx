@@ -70,7 +70,7 @@ export default function SchoolsPage() {
       <div>
         <div className="section-label">Registered Schools</div>
         {schools.map(s => (
-          <div key={s.id} className="school-card">
+          <div key={s.id} className="school-card card-lift">
             <div className="school-top">
               <div>
                 <div className="school-name">{s.name}</div>

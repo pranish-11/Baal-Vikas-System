@@ -4,7 +4,7 @@ import StatsGrid from '../components/Dashboard/StatsGrid';
 import ActivityFeed from '../components/Dashboard/ActivityFeed';
 import BehaviorOverview from '../components/Dashboard/BehaviorOverview';
 import MiniPodium, { MiniLBList } from '../components/Dashboard/MiniPodium';
-import { Activity, MessageSquare, Calendar, Star, ArrowRight, Check, X, Clock, UtensilsCrossed, Bed, Bot, TreePine, Heart, Zap } from 'lucide-react';
+import { Activity, MessageSquare, Calendar, Star, Clock, UtensilsCrossed, Bed, Leaf, TreePine } from 'lucide-react';
 import LegoBrickIcon from '../components/LegoBrickIcon';
 
 function timeAgo(timeStr) {
@@ -60,7 +60,6 @@ export default function DashboardPage({ onNavigate }) {
       { key: 'outdoor', label: 'Outdoor', icon: TreePine, color: '#22c55e' },
       { key: 'snack', label: 'Snack', icon: UtensilsCrossed, color: '#f59e0b', refused: todayLog?.snackRefused },
     ];
-    const liveActivities = ACTIVITY_META.filter(a => todayLog?.[a.key] && isLive(todayLog[a.key + 'Time']));
     const allActivities = ACTIVITY_META.map(a => ({
       ...a,
       done: todayLog?.[a.key] || false,
@@ -72,25 +71,32 @@ export default function DashboardPage({ onNavigate }) {
       { label: 'Messages', icon: MessageSquare, color: 'var(--sky)', bg: 'var(--sky-pale)', onClick: () => onNavigate('messages'), badge: unread || null },
       { label: 'Attendance', icon: Calendar, color: 'var(--primary)', bg: 'var(--primary-pale)', onClick: () => onNavigate('attendanceReports') },
       { label: 'My Child', icon: Star, color: 'var(--gold)', bg: 'var(--gold-pale)', onClick: () => onNavigate('myChild') },
-      { label: 'Ask AI', icon: Bot, color: 'var(--primary-dark)', bg: 'var(--primary-pale)', onClick: () => openModal('aiChatbot') },
+      { label: 'Ask AI', icon: Leaf, color: 'var(--primary-dark)', bg: 'var(--primary-pale)', onClick: () => openModal('aiChatbot') },
     ];
-
-    function LiveDot() {
-      return (
-        <span style={{
-          display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
-          background: '#22c55e', marginRight: 5, boxShadow: '0 0 8px rgba(34,197,94,0.6)',
-          animation: 'pulse 1.5s infinite',
-        }} />
-      );
-    }
 
     return (
       <>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 22, fontWeight: 900 }}>Welcome back{hasChildren ? `, ${user?.email?.split('@')[0] || 'Parent'}` : ''}</div>
-          <div style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600, marginTop: 2 }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        {/* Parent Hero Section */}
+        <div style={{
+          background: 'linear-gradient(135deg, #fce4ec 0%, #fef2f2 50%, #fff 100%)',
+          borderRadius: 16, padding: '20px 24px', marginBottom: 20,
+          border: '1.5px solid rgba(244,67,54,0.2)',
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 14,
+            background: 'linear-gradient(135deg, var(--coral), #d32f2f)',
+            color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, fontWeight: 800, flexShrink: 0, boxShadow: '0 3px 10px rgba(244,67,54,0.3)',
+          }}>
+            {(user?.name || user?.email || 'PA').substring(0, 2).toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#4a1a1a' }}>Welcome back, {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'Parent'}</div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginTop: 2 }}>
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {hasChildren && ` · ${myChildren.length} child${myChildren.length > 1 ? 'ren' : ''}`}
+            </div>
           </div>
         </div>
 
@@ -157,41 +163,41 @@ export default function DashboardPage({ onNavigate }) {
               )}
             </div>
 
-            {/* Live Now Banner */}
-            {liveActivities.length > 0 && (
-              <div style={{ marginBottom: 16, padding: '14px 18px', borderRadius: 14, background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)', border: '1.5px solid #86efac', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Zap size={16} style={{ color: '#22c55e' }} /> LIVE NOW
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {liveActivities.map(a => {
-                    const MetaIcon = a.icon;
-                    const ago = timeAgo(todayLog[a.key + 'Time']);
-                    return (
-                      <div key={a.key} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
-                        borderRadius: 10, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                        border: '1px solid #bbf7d0',
-                      }}>
-                        <div style={{
-                          width: 32, height: 32, borderRadius: 8,
-                          background: a.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            {/* Today's Activities */}
+            {(() => {
+              const done = allActivities.filter(a => a.done);
+              if (done.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 16, padding: '14px 18px', borderRadius: 14, background: 'linear-gradient(135deg, var(--primary-pale), #fff)', border: '1.5px solid rgba(46,125,107,0.25)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Clock size={16} /> Today's Activities
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {done.map(a => {
+                      const MIcon = a.icon;
+                      return (
+                        <div key={a.key} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px',
+                          borderRadius: 10, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                          border: `1px solid ${a.color}40`,
                         }}>
-                          <MetaIcon size={15} style={{ color: a.color }} />
-                        </div>
-                        <div>
-                          <div style={{ fontSize: 12, fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <LiveDot /> {a.label}
-                            {a.refused && <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>(Refused)</span>}
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: a.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <MIcon size={15} style={{ color: a.color }} />
                           </div>
-                          <div style={{ fontSize: 10, fontWeight: 600, color: '#6b7280' }}>{ago}</div>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {a.label}
+                              {a.refused && <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>(Refused)</span>}
+                            </div>
+                            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)' }}>{a.details || a.time}</div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Quick Actions */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 20 }}>
@@ -216,7 +222,7 @@ export default function DashboardPage({ onNavigate }) {
           </>
         )}
 
-        <div className="dash-grid">
+        <div className="dash-grid stagger-enter">
           <div>
             <StatsGrid />
             <ActivityFeed onNavigate={onNavigate} />
@@ -384,27 +390,66 @@ export default function DashboardPage({ onNavigate }) {
 
   const teacherClassName = currentRole === 'teacher' ? getTeacherClassName(user?.email) : '';
 
+  const userName = user?.name || user?.email?.split('@')[0] || (currentRole === 'teacher' ? 'Teacher' : 'Admin');
+  const userInitials = userName.substring(0, 2).toUpperCase();
+  const isAdmin = currentRole === 'admin';
+
+  const heroStyle = isAdmin
+    ? { bg: 'linear-gradient(135deg, #f0fdf4 0%, #f3faf7 50%, #fff 100%)', border: 'rgba(46,125,107,0.25)', avatarBg: 'linear-gradient(135deg, var(--primary), #1b5e20)', shadow: 'rgba(46,125,107,0.3)', textColor: '#1a3a2e' }
+    : { bg: 'linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 50%, #fff 100%)', border: 'rgba(74,140,196,0.25)', avatarBg: 'linear-gradient(135deg, var(--sky), #4a8cc4)', shadow: 'rgba(74,140,196,0.3)', textColor: '#1e3a5f' };
+
   return (
     <>
-      {currentRole === 'teacher' && teacherClassName && (
-        <div style={{ marginBottom: 16, fontSize: 15, fontWeight: 800, color: 'var(--sky)' }}>
-          {teacherClassName}
+      {/* Hero Section */}
+      <div style={{
+        background: heroStyle.bg,
+        borderRadius: 16, padding: '20px 24px', marginBottom: 20,
+        border: `1.5px solid ${heroStyle.border}`,
+        display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: 14,
+          background: heroStyle.avatarBg,
+          color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 16, fontWeight: 800, flexShrink: 0, boxShadow: `0 3px 10px ${heroStyle.shadow}`,
+        }}>
+          {userInitials}
         </div>
-      )}
-      {(currentRole === 'teacher' || currentRole === 'admin') && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', fontWeight: 800, gap: 6, display: 'flex', alignItems: 'center' }}
-            onClick={() => openModal('addBehaviour')}>
-            <Activity size={14} /> Log Behaviour
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 18, fontWeight: 900, color: heroStyle.textColor }}>Welcome back, {userName.split(' ')[0]}</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600, marginTop: 2 }}>
+            {isAdmin ? (
+              `Managing ${students.length} students`
+            ) : (
+              <>{teacherClassName || 'No class assigned yet'}{teacherStudents.length > 0 && ` · ${teacherStudents.length} students`}</>
+            )}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn btn-sm" style={{
+            background: 'var(--primary)', color: '#fff', fontWeight: 800, gap: 6,
+            display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: 10,
+            border: 'none', fontSize: 12, cursor: 'pointer',
+          }}
+            onClick={() => isAdmin ? onNavigate('students') : openModal('addBehaviour')}>
+            {!isAdmin && <Activity size={14} />} {isAdmin ? 'Manage Students' : 'Log Behaviour'}
           </button>
-          <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', border: '1.5px solid var(--primary)', fontWeight: 800, gap: 6, display: 'flex', alignItems: 'center' }}
-            onClick={() => onNavigate('students')}>
-            Manage Students
+          <button className="btn btn-sm" style={{
+            background: '#fff', color: 'var(--primary)', fontWeight: 800, gap: 6,
+            display: 'flex', alignItems: 'center', padding: '8px 16px', borderRadius: 10,
+            border: '1.5px solid var(--primary)', fontSize: 12, cursor: 'pointer',
+          }}
+            onClick={() => isAdmin ? openModal('manageUsers') : onNavigate('students')}>
+            {isAdmin ? 'Accounts' : 'Manage Students'}
           </button>
         </div>
-      )}
+      </div>
+
+      {/* Stats */}
       <StatsGrid />
-      <div className="dash-grid">
+
+      {/* Main Grid */}
+      <div className="dash-grid stagger-enter">
         <div>
           <ActivityFeed onNavigate={onNavigate} />
           <BehaviorOverview onNavigate={onNavigate} studentsList={teacherStudents} />

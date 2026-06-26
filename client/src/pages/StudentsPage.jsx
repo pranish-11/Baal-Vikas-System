@@ -67,38 +67,40 @@ export default function StudentsPage() {
       <div className="filter-row">
         {chips.map(c => (
           <div key={c.key} className={`filter-chip${filter === c.key ? ' active' : ''}`} onClick={() => setFilter(c.key)}>
-            {c.label}
+            <span className="chip-lbl">{c.label}</span><span className="chip-lbl-short">{c.label.split(' ')[0]}</span>
           </div>
         ))}
+      </div>
+      <div className="filter-actions" style={{ display:'flex', gap:8, marginBottom:18, flexWrap:'wrap', alignItems:'center' }}>
         {(currentRole === 'teacher' || currentRole === 'admin') && (
           <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', border: '1.5px solid var(--primary)', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
             onClick={() => openModal('teacherTag')}>
-            <Tag size={14} /> Tag
+            <Tag size={14} /> <span className="btn-txt">Tag</span>
           </button>
         )}
         {(currentRole === 'teacher' || currentRole === 'admin') && (
           <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
             onClick={() => openModal('addBehaviour')}>
-            <Activity size={14} /> Log Behaviour
+            <Activity size={14} /> <span className="btn-txt">Log Behaviour</span>
           </button>
         )}
         {currentRole === 'admin' && (
           <>
             <button className="btn btn-sm" style={{ background: 'var(--coral-pale)', color: 'var(--coral)', border: '1.5px solid var(--coral)', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
               onClick={() => openModal('linkParent')}>
-              <UserPlus size={14} /> Link Parent
+              <UserPlus size={14} /> <span className="btn-txt">Link Parent</span>
             </button>
             <button className="btn btn-sm" style={{ background: 'var(--lavender-pale)', color: 'var(--lavender)', border: '1.5px solid var(--lavender)', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
               onClick={() => openModal('assignClass')}>
-              <GraduationCap size={14} /> Assign Classes
+              <GraduationCap size={14} /> <span className="btn-txt">Assign Classes</span>
             </button>
             <button className="btn btn-sm" style={{ background: 'var(--primary-pale)', color: 'var(--primary)', border: '1.5px solid var(--primary)', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
               onClick={() => openModal('manageClasses')}>
-              <Plus size={14} /> Manage Classes
+              <Plus size={14} /> <span className="btn-txt">Manage Classes</span>
             </button>
             <button className="btn btn-sm" style={{ background: '#f0fdf4', color: '#16a34a', border: '1.5px solid #16a34a', fontWeight: 800, fontSize: 12, gap: 4, display: 'flex', alignItems: 'center' }}
               onClick={() => openModal('manageUsers')}>
-              <Users size={14} /> Accounts
+              <Users size={14} /> <span className="btn-txt">Accounts</span>
             </button>
           </>
         )}
@@ -112,26 +114,26 @@ export default function StudentsPage() {
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
           No students match this filter.
         </div>
-      ) : currentRole === 'admin' ? (
+      ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
           {classrooms.map(([cls, students]) => {
             const classFiltered = filtered.filter(s => (s.class || 'Unassigned') === cls);
             if (classFiltered.length === 0 && isFiltering) return null;
             return (
               <div key={cls}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #c4b5fd' }}>
-                    <School size={17} style={{ color: '#7c3aed' }} />
+                <div className="sc-class-hdr">
+                  <div className="sc-icon" style={{ background: 'linear-gradient(135deg, #ede9fe, #ddd6fe)', border: '1px solid #c4b5fd' }}>
+                    <School size={15} style={{ color: '#7c3aed' }} />
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{cls}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{students.length} student{students.length !== 1 ? 's' : ''}</div>
+                  <span className="sc-title">{cls}</span>
+                  <span className="sc-count">{students.length} student{students.length !== 1 ? 's' : ''}</span>
                 </div>
                 {classFiltered.length === 0 ? (
                   <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 13, fontWeight: 600, background: 'var(--surface2)', borderRadius: 10 }}>
                     No students in this class yet.
                   </div>
                 ) : (
-                  <div className="student-grid">
+                  <div className="student-grid stagger-enter">
                     {classFiltered.map(s => (
                       <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer', height: '100%' }}>
                         <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
@@ -142,14 +144,6 @@ export default function StudentsPage() {
               </div>
             );
           })}
-        </div>
-      ) : (
-        <div className="student-grid">
-          {filtered.map(s => (
-            <div key={s.id} onClick={() => { setCurrentStudentFilter(s.id); openModal('studentDetail'); }} style={{ cursor: 'pointer', height: '100%' }}>
-              <StudentCard student={s} attendanceStatus={rec[s.id] || null} />
-            </div>
-          ))}
         </div>
       )}
     </>

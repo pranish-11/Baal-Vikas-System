@@ -52,7 +52,7 @@ export default function UserManagementModal({ open, onClose }) {
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800 }}>Manage Accounts</div>
-              <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{userList.length} teacher(s) · {parents.length} parent(s)</div>
+              <div style={{ fontSize: 12, color: 'var(--text3)', fontWeight: 600 }}>{teachers.length} teacher(s) · {parents.length} parent(s)</div>
             </div>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', width: 28, height: 28, borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}><X size={18} /></button>

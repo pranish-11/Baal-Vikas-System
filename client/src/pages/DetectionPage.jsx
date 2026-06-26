@@ -156,7 +156,7 @@ export default function DetectionPage() {
       )}
 
       {connectedUrl && (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: 12, marginBottom: 16 }}>
+      <div className="cam-feed-grid stagger-enter">
         {orderedFeeds.length === 0 ? (
           <div style={{ gridColumn: '1/-1', padding: 40, textAlign: 'center', color: 'var(--text3)', fontSize: 14, fontWeight: 600 }}>
             No classrooms available for your role.
@@ -173,7 +173,8 @@ export default function DetectionPage() {
               onDragEnd={handleDragEnd}
             >
               <div style={{ position: 'relative' }}>
-                <div className="camera-box" style={{ margin: 0, borderRadius: 0, aspectRatio: 'unset', height: 400, position: 'relative' }}>
+                <div className="camera-box" style={{ margin: 0, borderRadius: 0, aspectRatio: 'unset', height: 400, position: 'relative' }}
+                  data-mobile-height="240">
                   <div className="cam-grid" />
                   <div className="cam-live-badge">● {cameraOnline ? 'LIVE' : 'OFF'}</div>
                   <img
@@ -192,7 +193,7 @@ export default function DetectionPage() {
                 <div style={{ display: 'flex', gap: 8, fontSize: 11, fontWeight: 600 }}>
                   <span style={{ color: '#16a34a' }}>{present} present</span>
                   <span style={{ color: '#dc2626' }}>{absentCount} absent</span>
-                  {leave > 0 && <span style={{ color: '#3b82f6' }}>{leave} leave</span>}
+                  <span style={{ color: '#3b82f6' }}>{leave} leave</span>
                   {unmarked > 0 && <span style={{ color: 'var(--text3)' }}>{unmarked} unmarked</span>}
                 </div>
               </div>

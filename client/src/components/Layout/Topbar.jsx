@@ -35,6 +35,7 @@ export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, noti
         </div>
         <div className="icon-btn" onClick={onToggleNotif} title="Notifications">
           <Bell size={20} />
+          <span className="btn-txt" style={{display:'none'}}>Notif</span>
           {notifCount > 0 && (
             <span style={{
               position: 'absolute', top: -4, right: -4,
@@ -51,15 +52,15 @@ export default function Topbar({ onOpenSidebar, onOpenModal, onToggleNotif, noti
           )}
         </div>
         {(currentRole === 'admin' || currentRole === 'teacher') && (
-          <button className="btn btn-sm" style={{ background: 'var(--coral-pale)', color: 'var(--coral)', border: '1.5px solid var(--coral)', fontWeight: 800, marginRight: 6 }}
+          <button className="btn btn-sm topbar-btn" style={{ background: 'var(--coral-pale)', color: 'var(--coral)', border: '1.5px solid var(--coral)', fontWeight: 800 }}
             onClick={() => openModal('announcement')}>
-            <Megaphone size={14} style={{ display: 'inline-block', verticalAlign: 'text-bottom', marginRight: 4 }} />
-            Notice
+            <Megaphone size={14} />
+            <span className="btn-txt">Notice</span>
           </button>
         )}
-        <button className="btn btn-primary btn-sm" onClick={onOpenModal}>
-          <CtaIcon size={16} style={{ display: 'inline-block', verticalAlign: 'text-bottom', marginRight: 6 }} />
-          {ctaText}
+        <button className="btn btn-primary btn-sm topbar-btn" onClick={onOpenModal}>
+          <CtaIcon size={16} />
+          <span className="btn-txt">{ctaText}</span>
         </button>
       </div>
     </div>

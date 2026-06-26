@@ -55,7 +55,7 @@ export default function FeesPage() {
           </div>
         </div>
       ) : (
-        <div id="fees-summary-row" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+        <div id="fees-summary-row" className="fees-summary-grid stagger-enter">
           {[
             { icon: DollarSign, bg: 'var(--primary-pale)', val: `$${total.toFixed(0)}`, label: 'Total Fees', tag: `${fees.length} records`, tagClass: 'tag-green' },
             { icon: CheckCircle2, bg: '#f0fdf4', val: `$${collected.toFixed(0)}`, label: 'Collected', tag: `${paidCount} paid`, tagClass: 'tag-green' },

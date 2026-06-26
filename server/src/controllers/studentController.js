@@ -12,7 +12,8 @@ async function listStudents(req, res, next) {
 async function createNewStudent(req, res, next) {
   try {
     const item = await createStudent(req.body);
-    res.status(201).json({ item });
+    const extra = item.parentPassword ? { parentPassword: item.parentPassword } : {};
+    res.status(201).json({ item, ...extra });
   } catch (error) {
     next(error);
   }

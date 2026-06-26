@@ -1,12 +1,11 @@
 import { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { Calendar } from 'lucide-react';
+import { CalendarOff, Users, CircleCheckBig, Timer, XCircle, ArrowRight } from 'lucide-react';
 
 export default function ActivityFeed({ onNavigate }) {
   const { currentRole, students, attendanceData, user, getTeacherClassrooms } = useApp();
   const [selectedChildIdx, setSelectedChildIdx] = useState(0);
 
-  // Filter students by teacher's assigned classrooms
   let visibleStudents = students;
   if (currentRole === 'teacher') {
     const assigned = getTeacherClassrooms(user?.email);
@@ -23,12 +22,20 @@ export default function ActivityFeed({ onNavigate }) {
   });
 
   const classList = Object.entries(classes).map(([name, studs]) => {
-    const present = studs.filter(s => rec[s.id] === 'present' || rec[s.id] === 'late').length;
+    const present = studs.filter(s => rec[s.id] === 'present').length;
+    const late = studs.filter(s => rec[s.id] === 'late').length;
     const absent = studs.filter(s => rec[s.id] === 'absent').length;
     const leave = studs.filter(s => rec[s.id] === 'leave').length;
     const unmarked = studs.filter(s => !rec[s.id]).length;
-    return { name, count: studs.length, present, absent, leave, unmarked, students: studs };
+    return { name, count: studs.length, present, late, absent, leave, unmarked, students: studs };
   });
+
+  const totalPresent = classList.reduce((s, c) => s + c.present, 0);
+  const totalLate = classList.reduce((s, c) => s + c.late, 0);
+  const totalAbsent = classList.reduce((s, c) => s + c.absent, 0);
+  const totalLeave = classList.reduce((s, c) => s + c.leave, 0);
+  const totalUnmarked = classList.reduce((s, c) => s + c.unmarked, 0);
+  const attendancePct = visibleStudents.length ? Math.round(((totalPresent + totalLate) / visibleStudents.length) * 100) : 0;
 
   if (currentRole === 'parent') {
     const email = user?.email || '';
@@ -102,24 +109,67 @@ export default function ActivityFeed({ onNavigate }) {
   return (
     <div className="card mb-20">
       <div className="card-header">
-        <div className="card-title">Classrooms</div>
+        <div className="card-title">Attendance Overview</div>
         <span className="card-action" onClick={() => onNavigate('students')}>Manage students →</span>
       </div>
-      <div className="card-body" style={{ padding: '12px 20px' }}>
+      <div className="card-body" style={{ padding: '16px 20px' }}>
+        {/* Summary row */}
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 16, paddingBottom: 14, borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--primary)' }}>
+            <CircleCheckBig size={14} /> {totalPresent} Present
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#eab308' }}>
+            <Timer size={14} /> {totalLate} Late
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#ef4444' }}>
+            <XCircle size={14} /> {totalAbsent} Absent
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>
+            <CalendarOff size={13} /> {totalLeave} Leave
+          </div>
+          {totalUnmarked > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700, color: 'var(--text3)' }}>
+              {totalUnmarked} Unmarked
+            </div>
+          )}
+          <div style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 800, color: 'var(--primary)' }}>{attendancePct}% attendance</div>
+        </div>
+
         {classList.length === 0 ? (
           <div style={{ padding: 20, textAlign: 'center', color: 'var(--text3)', fontSize: 13, fontWeight: 600 }}>No classrooms set up yet.</div>
         ) : classList.map(cls => {
+          const clsPct = cls.count ? Math.round(((cls.present + cls.late) / cls.count) * 100) : 0;
           return (
-            <div key={cls.name} style={{ marginBottom: 12, padding: 12, borderRadius: 10, background: 'var(--surface2)', cursor: 'pointer' }} onClick={() => onNavigate('students')}>
+            <div key={cls.name} style={{ marginBottom: 10, padding: '12px 14px', borderRadius: 10, background: 'var(--surface2)', cursor: 'pointer', transition: 'all .15s' }}
+              onClick={() => onNavigate('students')}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--primary-pale)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--surface2)'}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 14, fontWeight: 800 }}>{cls.name}</div>
-                <span className="badge badge-general">{cls.count} student{cls.count > 1 ? 's' : ''}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--primary-pale)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Users size={13} style={{ color: 'var(--primary)' }} />
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>{cls.name}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text3)' }}>{cls.count} students</span>
+                  <ArrowRight size={12} style={{ color: 'var(--text3)' }} />
+                </div>
               </div>
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                {cls.present > 0 && <span className="badge badge-resolved">✓ {cls.present} present</span>}
-                {cls.absent > 0 && <span className="badge badge-escalated">✕ {cls.absent} absent</span>}
-                {cls.leave > 0 && <span className="badge badge-pending"><Calendar size={11} style={{ marginRight: 2 }} /> {cls.leave} on leave</span>}
-                {cls.unmarked > 0 && <span className="badge badge-general" style={{ background: 'var(--surface)', color: 'var(--text3)' }}>{cls.unmarked} not marked</span>}
+              {/* Mini bar */}
+              <div style={{ height: 5, borderRadius: 3, background: '#e5e7eb', display: 'flex', overflow: 'hidden', gap: 1 }}>
+                {cls.present > 0 && <div style={{ flex: cls.present, background: 'var(--primary)', borderRadius: 2 }} />}
+                {cls.late > 0 && <div style={{ flex: cls.late, background: '#eab308', borderRadius: 2 }} />}
+                {cls.absent > 0 && <div style={{ flex: cls.absent, background: '#ef4444', borderRadius: 2 }} />}
+                {cls.leave > 0 && <div style={{ flex: cls.leave, background: '#3b82f6', borderRadius: 2 }} />}
+                {cls.unmarked > 0 && <div style={{ flex: cls.unmarked, background: '#d1d5db', borderRadius: 2 }} />}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--primary)' }}>{cls.present} present</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#eab308' }}>{cls.late} late</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444' }}>{cls.absent} absent</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6' }}>{cls.leave} leave</span>
+                {cls.unmarked > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text3)' }}>{cls.unmarked} pending</span>}
               </div>
             </div>
           );

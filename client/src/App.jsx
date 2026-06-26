@@ -34,7 +34,7 @@ import NoticeDetailModal from './components/Modals/NoticeDetailModal';
 import AddBehaviourModal from './components/Modals/AddBehaviourModal';
 import UserManagementModal from './components/Modals/UserManagementModal';
 import GlobalSearch from './components/GlobalSearch';
-import { Bot } from 'lucide-react';
+import { Leaf } from 'lucide-react';
 
 const MODAL_MAP = {
   award: AwardModal,
@@ -111,6 +111,7 @@ function AppContent() {
   return (
     <>
       <AppLayout
+        pageKey={currentPage}
         onOpenModal={handleCta}
         onToggleNotif={() => setNotifOpen(!notifOpen)}
         notifCount={notifCount}
@@ -125,19 +126,14 @@ function AppContent() {
       />
       {ActiveModal && <ActiveModal open={true} onClose={closeModal} data={modalData} />}
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      {currentRole === 'parent' && (
+      {currentRole === 'parent' && currentPage !== 'messages' && (
         <button onClick={() => openModal('aiChatbot')} title="Ask Axion AI"
-          style={{
-            position: 'fixed', bottom: 24, right: 24, zIndex: 999,
-            width: 54, height: 54, borderRadius: '50%', border: 'none',
-            background: 'linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%)',
-            color: '#fff', cursor: 'pointer', boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'transform .2s, box-shadow .2s',
-          }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(0,0,0,0.32)'; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.25)'; }}>
-          <Bot size={24} />
+          className="ai-fab-btn">
+          <span className="ai-fab-ring" />
+          <span className="ai-fab-inner">
+            <Leaf size={22} />
+          </span>
+          <span className="ai-fab-label">Ask AI</span>
         </button>
       )}
       <Toast message={toastMessage} />
