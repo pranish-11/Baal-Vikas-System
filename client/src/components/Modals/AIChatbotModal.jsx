@@ -110,7 +110,7 @@ export default function AIChatbotModal({ open, onClose, data }) {
           </div>
         )}
 
-        <div style={{ height: 380, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 7, background: '#fafafa' }}>
+        <div className="ai-chat-scroll" style={{ height: 380, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 7, background: '#fafafa' }}>
           {messages.map((m, i) => (
             <div key={i} style={{ animation: m.from === 'bot' && i > 0 ? 'fadeIn 0.25s ease' : undefined }}>
               <div style={{ display: 'flex', gap: 8, flexDirection: m.from === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>

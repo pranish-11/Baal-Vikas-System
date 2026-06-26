@@ -1,21 +1,36 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { School, Check, BookOpen, Users } from 'lucide-react';
+import { requestJSON } from '../../api';
+import { API_BASE } from '../../config';
 
 export default function AssignClassModal({ open, onClose }) {
   const { students, teacherClassrooms, saveTeacherClassrooms } = useApp();
   const [selTeacher, setSelTeacher] = useState('');
+  const [teachers, setTeachers] = useState([]);
 
-  const teachers = useMemo(() => {
-    const map = {};
-    try {
-      const profiles = JSON.parse(localStorage.getItem('axion_saved_profiles')) || [];
-      profiles.forEach(p => {
-        if (p.role === 'teacher' && p.email) map[p.email] = p.name || p.email;
+  // Fetch teachers from the backend so all devices see the full list
+  useEffect(() => {
+    if (!open) return;
+    requestJSON(`${API_BASE}/users?role=TEACHER`)
+      .then(res => {
+        if (res && res.users) {
+          const entries = res.users.map(u => [u.email, u.name || u.email]);
+          setTeachers(entries.sort(([, a], [, b]) => a.localeCompare(b)));
+        }
+      })
+      .catch(() => {
+        // Fallback to saved profiles in localStorage if API fails
+        try {
+          const profiles = JSON.parse(localStorage.getItem('axion_saved_profiles')) || [];
+          const map = {};
+          profiles.forEach(p => {
+            if (p.role === 'teacher' && p.email) map[p.email] = p.name || p.email;
+          });
+          setTeachers(Object.entries(map).sort(([, a], [, b]) => a.localeCompare(b)));
+        } catch {}
       });
-    } catch {}
-    return Object.entries(map).sort(([, a], [, b]) => a.localeCompare(b));
-  }, []);
+  }, [open]);
 
   const classrooms = [...new Set(students.map(s => s.class).filter(Boolean))].sort();
 

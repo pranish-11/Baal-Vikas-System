@@ -267,6 +267,12 @@ export function AppProvider({ children }) {
       requestJSON(`${API_BASE}/data/axion_teacher_tags`).then(blob => {
         if (blob && blob.data) setTeacherTags(blob.data);
       }).catch(() => {});
+      requestJSON(`${API_BASE}/data/axion_teacher_classrooms`).then(blob => {
+        if (blob && blob.data) {
+          setTeacherClassrooms(blob.data);
+          localStorage.setItem('axion_teacher_classrooms', JSON.stringify(blob.data));
+        }
+      }).catch(() => {});
     } catch (e) {
       console.warn('Backend unavailable:', e.message);
     }
@@ -729,6 +735,12 @@ export function AppProvider({ children }) {
         }
       }
       localStorage.setItem('axion_teacher_classrooms', JSON.stringify(updated));
+      // Sync removal to database
+      requestJSON(`${API_BASE}/data/axion_teacher_classrooms`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      }).catch(() => {});
       return updated;
     });
     setClassList(prev => prev.filter(c => c !== name));
@@ -746,6 +758,12 @@ export function AppProvider({ children }) {
   const saveTeacherClassrooms = useCallback((data) => {
     setTeacherClassrooms(data);
     localStorage.setItem('axion_teacher_classrooms', JSON.stringify(data));
+    // Persist to database so it's available on all devices
+    requestJSON(`${API_BASE}/data/axion_teacher_classrooms`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).catch(() => {});
   }, []);
 
   // Get classrooms a teacher is assigned to; returns [] if none set
